@@ -5,6 +5,7 @@
 #include "rand.h"
 #include "time.h"
 #include "alloc.h"
+#include "keyboard.h"
 
 #define SCALE              1000
 #define BACKGROUND         17
@@ -281,8 +282,11 @@ int _main(void)
             }
         }
 
-        if (ships[0].hp == 0)
+        if (ships[0].hp == 0) {
             print_game_over();
+            if (kbhit())
+                break;
+        }
         for (int i = 0; i < ships_max; i++) {
             if (ships[i].hp > 0 || i == 0) {
                 ship_draw(i, true);
