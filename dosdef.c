@@ -22,6 +22,7 @@ struct ship {
     uint8_t fire_delay;
     uint8_t color_a, color_b;
     uint8_t hp, hp_max;
+    bool alive;
 };
 
 struct bullet {
@@ -42,6 +43,9 @@ static size_t bullets_max = 128;
 
 static struct particle *particles;
 static size_t particles_max = 128;
+
+static struct ship *ships;
+static size_t ships_max = 16;
 
 static void bullet_draw(int i, bool clear)
 {
@@ -141,7 +145,6 @@ static void ship_draw(struct ship *ship, bool clear)
         vga_pixel(hb, clear ? BACKGROUND : ship->color_a);
         vga_pixel(vb, clear ? BACKGROUND : ship->color_a);
     }
-    vga_pixel(c, clear ? BACKGROUND : ship->color_b);
     struct point d = {c.x + ship->dx / 10, c.y + ship->dy / 10};
     vga_pixel(d, clear ? BACKGROUND : WHITE);
 }
@@ -153,7 +156,7 @@ static void ship_step(struct ship *ship)
     ship->dx = (ship->dx * 99) / 100;
     ship->dy = (ship->dy * 99) / 100;
     if (ship->hp < ship->hp_max / 2) {
-        if ((randn(ship->hp) == 0))
+        if ((randn(ship->hp < 1 ? 1 : ship->hp) == 0))
             burn(ship->x, ship->y);
     }
 }
@@ -163,6 +166,22 @@ static bool joystick_detected()
     struct joystick joy;
     joystick_read(&joy);
     return joy.x != 0 || joy.y != 0;
+}
+
+static void print_game_over()
+{
+    vga_print((struct point){133, 97}, WHITE, "GAME OVER");
+}
+
+static void ship_check_bounds(struct ship *ship)
+{
+    int32_t xlim = VGA_PWIDTH * SCALE;
+    int32_t ylim = VGA_PHEIGHT * SCALE;
+    if (ship->x < 0 || ship->x > xlim || ship->y < 0 || ship->y > ylim) {
+        ship->dx = 0;
+        ship->dy = 0;
+        ship->hp = 0;
+    }
 }
 
 int _main(void)
@@ -176,17 +195,18 @@ int _main(void)
     /* Allocate memory. */
     bullets = sbrk(bullets_max * sizeof(bullets[0]));
     particles = sbrk(particles_max * sizeof(particles[0]));
+    ships = sbrk(ships_max * sizeof(ships[0]));
 
+    /* Initialize Interface */
     vga_on();
-    // TODO: this is temporary
+    // TODO: hardcoded calibration is temporary
     joystick_config[0].xmax = joystick_config[0].ymax = 254;
     joystick_config[0].xmin = joystick_config[0].ymin = 1;
     joystick_config[0].xcenter = joystick_config[0].ycenter = 128;
     //joystick_calibrate();
-
-    vga_clear(BACKGROUND);
     struct joystick_config jconf = joystick_config[0];
-    struct ship player = {
+    struct ship *player = &ships[0];
+    *player = (struct ship){
         .x = VGA_PWIDTH / 2 * SCALE,
         .y = VGA_PHEIGHT / 2 * SCALE,
         .color_a = YELLOW,
@@ -197,18 +217,32 @@ int _main(void)
     };
     int xrange = 2 * (jconf.xmax - jconf.xmin);
     int yrange = 2 * (jconf.ymax - jconf.ymin);
+
+    /* Main Loop */
+    vga_clear(BACKGROUND);
     for (;;) {
-        ship_draw(&player, true);
+        ship_draw(player, true);
         struct joystick joy;
-        joystick_read(&joy);
-        player.dx += ((joy.x - jconf.xcenter) * 100) / xrange;
-        player.dy += ((joy.y - jconf.xcenter) * 100) / yrange;
-        ship_step(&player);
-        ship_draw(&player, false);
-        if (joy.b) // TODO: temporary
-            burn(player.x, player.y);
+        if (player->hp > 0) {
+            joystick_read(&joy);
+            player->dx += ((joy.x - jconf.xcenter) * 100) / xrange;
+            player->dy += ((joy.y - jconf.xcenter) * 100) / yrange;
+        } else {
+            print_game_over();
+            joy.x = jconf.xcenter;
+            joy.y = jconf.ycenter;
+            joy.a = false;
+            joy.b = false;
+        }
+        ship_step(player);
+        ship_draw(player, false);
+        ship_check_bounds(player);
+        /* TODO: temporary testing button */
+        if (joy.b) {
+            player->hp--;
+        }
         if (joy.a)
-            ship_fire(&player);
+            ship_fire(player);
         for (int i = 0; i < bullets_max; i++) {
             bullet_draw(i, true);
             if (bullets[i].alive) {

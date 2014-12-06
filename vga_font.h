@@ -1,6 +1,8 @@
 #include "int.h"
 #include "vga.h"
 
+/* Letters are 7 pixels tall and 5 pixels wide. */
+
 /* http://redd.it/2ba3g3 */
 static const char LINES[]   = "BCDEIKOPQRSTUVYZ\\_`";
 static const char LETTERS[] =
