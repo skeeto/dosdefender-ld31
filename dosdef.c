@@ -29,6 +29,7 @@ struct ship {
     uint16_t score;
     uint8_t radius;
     uint8_t fire_delay;
+    uint8_t fire_damage;
     uint8_t color_a, color_b;
     uint8_t hp, hp_max;
 };
@@ -37,6 +38,7 @@ struct bullet {
     int32_t x, y, dx, dy;
     tick_t birthtick;
     uint8_t color;
+    uint8_t damage;
     bool alive;
 };
 
@@ -82,7 +84,10 @@ static void bullet_step(int i)
     for (int id = 0; id < ships_max; id++) {
         if (ships[id].hp > 0 && ships[id].color_b != bullets[i].color) {
             if (bullet_in_ship(i, id)) {
-                ships[id].hp--;
+                if (ships[id].hp >= bullets[i].damage)
+                    ships[id].hp -= bullets[i].damage;
+                else
+                    ships[id].hp = 0;
                 bullets[i].alive = false; // absorb
                 if (ships[id].hp == 0) {
                     for (int j = 0; j < 10; j++)
@@ -122,6 +127,7 @@ static int ship_fire(int i)
     bullets[choice].dy = ships[i].dy * BULLET_SPEED;
     bullets[choice].color = ships[i].color_b;
     bullets[choice].birthtick = ticks;
+    bullets[choice].damage = ships[i].fire_damage;
     bullets[choice].alive = true;
     speaker_play(&speaker, ships[i].fx_fire);
     return choice;
@@ -197,7 +203,7 @@ static void ship_step(int i)
     ships[i].dx = (ships[i].dx * 99) / 100;
     ships[i].dy = (ships[i].dy * 99) / 100;
     if (ships[i].hp < ships[i].hp_max / 2) {
-        if ((randn(ships[i].hp < 1 ? 1 : ships[i].hp) == 0))
+        if ((randn(ships[i].hp < 1 ? 1 : ships[i].hp) < 10))
             burn(ships[i].x, ships[i].y);
     }
 }
@@ -339,8 +345,9 @@ int _main(void)
         .color_b = LIGHT_BLUE,
         .radius = 2,
         .fire_delay = 10,
-        .hp = 10,
-        .hp_max = 10,
+        .fire_damage = 10,
+        .hp = 100,
+        .hp_max = 100,
         .ai = ai_player,
         .fx_fire = &fx_fire0
     };
@@ -362,8 +369,9 @@ int _main(void)
                     ships[id].color_b = LIGHT_RED;
                     ships[id].radius = 2;
                     ships[id].fire_delay = 100;
-                    ships[id].hp = 1;
-                    ships[id].hp_max = 1;
+                    ships[id].fire_damage = 10;
+                    ships[id].hp = 10;
+                    ships[id].hp_max = 10;
                     ships[id].score = 100;
                     ships[id].ai = ai_seeker;
                     ships[id].fx_fire = &fx_fire1;
@@ -372,16 +380,29 @@ int _main(void)
                     ships[id].color_b = LIGHT_RED;
                     ships[id].radius = 2;
                     ships[id].fire_delay = 120;
-                    ships[id].hp = 2;
-                    ships[id].hp_max = 2;
+                    ships[id].fire_damage = 10;
+                    ships[id].hp = 20;
+                    ships[id].hp_max = 20;
                     ships[id].score = 125;
                     ships[id].ai = ai_dummy;
+                    ships[id].fx_fire = &fx_fire1;
+                } else if (select < 93) {
+                    ships[id].color_a = WHITE;
+                    ships[id].color_b = LIGHT_RED;
+                    ships[id].radius = 1;
+                    ships[id].fire_delay = 20;
+                    ships[id].fire_damage = 1;
+                    ships[id].hp = 1;
+                    ships[id].hp_max = 1;
+                    ships[id].score = 500;
+                    ships[id].ai = ai_seeker;
                     ships[id].fx_fire = &fx_fire1;
                 } else if (select < 96) {
                     ships[id].color_a = RED;
                     ships[id].color_b = LIGHT_GREEN;
                     ships[id].radius = 3;
                     ships[id].fire_delay = 50;
+                    ships[id].fire_damage = 25;
                     ships[id].hp = 5;
                     ships[id].hp_max = 5;
                     ships[id].score = 250;
@@ -389,11 +410,12 @@ int _main(void)
                     ships[id].fx_fire = &fx_fire2;
                 } else {
                     ships[id].color_a = LIGHT_MAGENTA;
-                    ships[id].color_b = LIGHT_GREEN;
+                    ships[id].color_b = LIGHT_CYAN;
                     ships[id].radius = 5;
                     ships[id].fire_delay = 200;
-                    ships[id].hp = 10;
-                    ships[id].hp_max = 10;
+                    ships[id].fire_damage = 50;
+                    ships[id].hp = 100;
+                    ships[id].hp_max = 100;
                     ships[id].score = 1000;
                     ships[id].ai = ai_seeker;
                     ships[id].fx_fire = &fx_fire3;
@@ -418,6 +440,14 @@ int _main(void)
             if (kbhit())
                 break;
         }
+        for (int i = 0; i < particles_max; i++) {
+            particle_draw(i, true);
+            if (particles[i].alive) {
+                particle_step(i);
+                if (particles[i].alive)
+                    particle_draw(i, false);
+            }
+        }
         for (int i = 0; i < ships_max; i++) {
             if (ships[i].hp > 0 || i == 0) {
                 ship_draw(i, true);
@@ -434,14 +464,6 @@ int _main(void)
                 bullet_step(i);
                 if (bullets[i].alive)
                     bullet_draw(i, false);
-            }
-        }
-        for (int i = 0; i < particles_max; i++) {
-            particle_draw(i, true);
-            if (particles[i].alive) {
-                particle_step(i);
-                if (particles[i].alive)
-                    particle_draw(i, false);
             }
         }
         vga_vsync();
