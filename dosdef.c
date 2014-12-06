@@ -600,7 +600,7 @@ int _main(void)
                     ships[id].color_b = YELLOW;
                     ships[id].radius = 8;
                     ships[id].fire_delay = 20;
-                    ships[id].fire_damage = 200;
+                    ships[id].fire_damage = 90;
                     ships[id].drop_rate = 4;
                     ships[id].hp = 1000;
                     ships[id].hp_max = 1000;
