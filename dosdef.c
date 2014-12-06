@@ -297,7 +297,6 @@ int _main(void)
             }
         }
         ship_check_bounds(0);
-        /* TODO: temporary testing button */
         for (int i = 0; i < bullets_max; i++) {
             bullet_draw(i, true);
             if (bullets[i].alive) {
