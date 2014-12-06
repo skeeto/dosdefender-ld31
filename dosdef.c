@@ -7,6 +7,7 @@
 #include "alloc.h"
 #include "keyboard.h"
 #include "speaker.h"
+#include "mouse.h"
 
 #define SCALE              1000
 #define BACKGROUND         17
@@ -57,6 +58,18 @@ static size_t particles_max = 64;
 
 static struct ship *ships;
 static size_t ships_max = 12;
+
+static int joystick_detected_cache = 2;
+
+static bool joystick_detected()
+{
+    if (joystick_detected_cache == 2) {
+        struct joystick joy;
+        joystick_read(&joy);
+        joystick_detected_cache = joy.x != 0 || joy.y != 0;
+    }
+    return joystick_detected_cache;
+}
 
 static void burn(int32_t x, int32_t y);
 static void ship_draw(int id, bool clear);
@@ -209,13 +222,6 @@ static void ship_step(int i)
     }
 }
 
-static bool joystick_detected()
-{
-    struct joystick joy;
-    joystick_read(&joy);
-    return joy.x != 0 || joy.y != 0;
-}
-
 static void print_game_over()
 {
     vga_print((struct point){133, 97}, WHITE, "GAME OVER");
@@ -272,16 +278,26 @@ int spawn(int hp)
 
 static void ai_player(int i)
 {
-    int xrange = 2 * (joystick_config[0].xmax - joystick_config[0].xmin);
-    int yrange = 2 * (joystick_config[0].ymax - joystick_config[0].ymin);
     if (ships[i].hp > 0) {
-        struct joystick joy;
-        joystick_read(&joy);
-        ships[i].dx += ((joy.x - joystick_config[0].xcenter) * 100) / xrange;
-        ships[i].dy += ((joy.y - joystick_config[0].xcenter) * 100) / yrange;
-        rand_seed += joy.x - joy.y; // mix inputs into random state
-        if (joy.a)
-            ship_fire(i);
+        if (joystick_detected()) {
+            struct joystick joy;
+            struct joystick_config c = joystick_config[0];
+            int xrange = 2 * (c.xmax - joystick_config[0].xmin);
+            int yrange = 2 * (c.ymax - c.ymin);
+            joystick_read(&joy);
+            ships[i].dx += ((joy.x - c.xcenter) * 100) / xrange;
+            ships[i].dy += ((joy.y - c.xcenter) * 100) / yrange;
+            rand_seed += joy.x - joy.y; // mix inputs into random state
+            if (joy.a)
+                ship_fire(i);
+        } else {
+            struct mouse mouse = mouse_read();
+            ships[i].dx += (mouse.x * SCALE / 2 - ships[i].x) / (4 * SCALE);
+            ships[i].dy += (mouse.y * SCALE     - ships[i].y) / (4 * SCALE);
+            rand_seed += mouse.x - mouse.y; // mix inputs into random state
+            if (mouse.left)
+                ship_fire(i);
+        }
     }
 }
 
@@ -328,6 +344,7 @@ static void clear()
     particles = sbrk(particles_max * sizeof(particles[0]));
     ships = sbrk(ships_max * sizeof(ships[0]));
 
+    rand_seed += get_tick();
     ships[0] = (struct ship) {
         .x = VGA_PWIDTH / 2 * SCALE,
         .y = VGA_PHEIGHT / 2 * SCALE,
@@ -353,22 +370,21 @@ static void clear()
 
 int _main(void)
 {
-    rand_seed += get_tick();
-    if (!joystick_detected()) {
-        print("DOS Defender requires a joystick!$");
-        return -1;
-    }
-
     /* Initialize Interface */
     vga_on();
-    // TODO: hardcoded calibration is temporary
-    joystick_config[0].xmax = joystick_config[0].ymax = 254;
-    joystick_config[0].xmin = joystick_config[0].ymin = 1;
-    joystick_config[0].xcenter = joystick_config[0].ycenter = 128;
-    //joystick_calibrate();
+    if (joystick_detected()) {
+        // TODO: hardcoded calibration is temporary
+        joystick_config[0].xmax = joystick_config[0].ymax = 254;
+        joystick_config[0].xmin = joystick_config[0].ymin = 1;
+        joystick_config[0].xcenter = joystick_config[0].ycenter = 128;
+        //joystick_calibrate();
+    } else {
+        mouse_init();
+    }
 
     /* Main Loop */
     clear();
+    struct mouse mouse = {0};
     for (;;) {
         speaker_step(&speaker);
         if (randn(50) == 0) {
@@ -441,14 +457,23 @@ int _main(void)
         }
 
         if (ships[0].hp == 0) {
-            struct joystick joy;
-            joystick_read(&joy);
+            bool first, second;
+            if (joystick_detected()) {
+                struct joystick joy;
+                joystick_read(&joy);
+                first = joy.a;
+                second = joy.b;
+            } else {
+                struct mouse mouse = mouse_read();
+                first = mouse.left;
+                second = mouse.right;
+            }
             if (!ending_played) {
                 speaker_play(&speaker, &fx_end_music);
                 ending_played = true;
             } else if (!speaker.sample) {
                 print_exit_help();
-                if (joy.a) {
+                if (first) {
                     clear();
                     continue;
                 }
@@ -456,7 +481,7 @@ int _main(void)
             print_game_over();
             if (kbhit())
                 break;
-            if (joy.b) { // restart early
+            if (second) { // restart early
                 clear();
                 continue;
             }
@@ -486,6 +511,11 @@ int _main(void)
                 if (bullets[i].alive)
                     bullet_draw(i, false);
             }
+        }
+        if (!joystick_detected()) {
+            vga_pixel((struct point){mouse.x / 2, mouse.y}, BACKGROUND);
+            mouse = mouse_read();
+            vga_pixel((struct point){mouse.x / 2, mouse.y}, WHITE);
         }
         vga_vsync();
         ticks++;
