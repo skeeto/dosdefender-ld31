@@ -21,6 +21,7 @@ struct ship {
     tick_t last_fire;
     uint8_t fire_delay;
     uint8_t color_a, color_b;
+    uint8_t hp, hp_max;
 };
 
 struct bullet {
@@ -42,24 +43,6 @@ static size_t bullets_max = 128;
 static struct particle *particles;
 static size_t particles_max = 128;
 
-static void ship_draw(struct ship *ship, bool clear)
-{
-    struct point c = {ship->x / SCALE, ship->y / SCALE};
-    for (int i = -1; i <= 1; i++) {
-        struct point ha = {ship->x / SCALE - i, ship->y / SCALE - 2};
-        struct point hb = {ship->x / SCALE - i, ship->y / SCALE + 2};
-        struct point va = {ship->x / SCALE - 2, ship->y / SCALE - i};
-        struct point vb = {ship->x / SCALE + 2, ship->y / SCALE - i};
-        vga_pixel(ha, clear ? BACKGROUND : ship->color_a);
-        vga_pixel(va, clear ? BACKGROUND : ship->color_a);
-        vga_pixel(hb, clear ? BACKGROUND : ship->color_a);
-        vga_pixel(vb, clear ? BACKGROUND : ship->color_a);
-    }
-    vga_pixel(c, clear ? BACKGROUND : ship->color_b);
-    struct point d = {c.x + ship->dx / 10, c.y + ship->dy / 10};
-    vga_pixel(d, clear ? BACKGROUND : WHITE);
-}
-
 static void bullet_draw(int i, bool clear)
 {
     struct point c = {bullets[i].x / SCALE, bullets[i].y / SCALE};
@@ -73,14 +56,6 @@ static void bullet_step(int i)
     if (bullets[i].x < 0 || bullets[i].x > VGA_PWIDTH * SCALE ||
         bullets[i].y < 0 || bullets[i].y > VGA_PHEIGHT * SCALE)
         bullets[i].alive = false;
-}
-
-static void ship_step(struct ship *ship)
-{
-    ship->x += ship->dx;
-    ship->y += ship->dy;
-    ship->dx = (ship->dx * 99) / 100;
-    ship->dy = (ship->dy * 99) / 100;
 }
 
 static int ship_fire(struct ship *source)
@@ -117,8 +92,8 @@ static void particle_draw(int i, bool clear)
     } else {
         int age = ticks - particles[i].birthtick;
         vga_pixel(c, age > PARTICLE_MAX_AGE * 3 / 4
-                  ? ((rand() % 5) + 24)    // smoke
-                  : ((rand() % 5) + 40));  // fire
+                  ? (randn(5) + 24)    // smoke
+                  : (randn(5) + 40));  // fire
     }
 }
 
@@ -129,8 +104,8 @@ static void particle_step(int i)
         particle_draw(i, true);
     } else {
         int speed = 2;
-        particles[i].x += (rand() % (SCALE * speed)) - (SCALE * speed / 2);
-        particles[i].y += (rand() % (SCALE * speed)) - (SCALE * speed / 2);
+        particles[i].x += randn(SCALE * speed) - (SCALE * speed / 2);
+        particles[i].y += randn(SCALE * speed) - (SCALE * speed / 2);
     }
 }
 
@@ -151,6 +126,36 @@ static void burn(int32_t x, int32_t y)
     particles[choice].x = x;
     particles[choice].y = y;
     particles[choice].birthtick = ticks;
+}
+
+static void ship_draw(struct ship *ship, bool clear)
+{
+    struct point c = {ship->x / SCALE, ship->y / SCALE};
+    for (int i = -1; i <= 1; i++) {
+        struct point ha = {ship->x / SCALE - i, ship->y / SCALE - 2};
+        struct point hb = {ship->x / SCALE - i, ship->y / SCALE + 2};
+        struct point va = {ship->x / SCALE - 2, ship->y / SCALE - i};
+        struct point vb = {ship->x / SCALE + 2, ship->y / SCALE - i};
+        vga_pixel(ha, clear ? BACKGROUND : ship->color_a);
+        vga_pixel(va, clear ? BACKGROUND : ship->color_a);
+        vga_pixel(hb, clear ? BACKGROUND : ship->color_a);
+        vga_pixel(vb, clear ? BACKGROUND : ship->color_a);
+    }
+    vga_pixel(c, clear ? BACKGROUND : ship->color_b);
+    struct point d = {c.x + ship->dx / 10, c.y + ship->dy / 10};
+    vga_pixel(d, clear ? BACKGROUND : WHITE);
+}
+
+static void ship_step(struct ship *ship)
+{
+    ship->x += ship->dx;
+    ship->y += ship->dy;
+    ship->dx = (ship->dx * 99) / 100;
+    ship->dy = (ship->dy * 99) / 100;
+    if (ship->hp < ship->hp_max / 2) {
+        if ((randn(ship->hp) == 0))
+            burn(ship->x, ship->y);
+    }
 }
 
 static bool joystick_detected()
@@ -187,6 +192,8 @@ int _main(void)
         .color_a = YELLOW,
         .color_b = LIGHT_BLUE,
         .fire_delay = 10,
+        .hp = 100,
+        .hp_max = 100,
     };
     int xrange = 2 * (jconf.xmax - jconf.xmin);
     int yrange = 2 * (jconf.ymax - jconf.ymin);

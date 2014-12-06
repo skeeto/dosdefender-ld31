@@ -13,4 +13,9 @@ static uint32_t rand()
     return rand_seed;
 }
 
+static uint32_t randn(uint32_t n)
+{
+    return rand() % n;
+}
+
 #endif
