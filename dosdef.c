@@ -356,13 +356,8 @@ int _main(void)
         if (randn(50) == 0) {
             int id = spawn(1);
             if (id > 0) {
-                switch (randn(10)) {
-                case 0:
-                case 1:
-                case 2:
-                case 3:
-                case 4:
-                case 5:
+                int select = randn(100) + ticks / 1000;
+                if (select < 65) {
                     ships[id].color_a = BROWN;
                     ships[id].color_b = LIGHT_RED;
                     ships[id].radius = 2;
@@ -372,10 +367,7 @@ int _main(void)
                     ships[id].score = 100;
                     ships[id].ai = ai_seeker;
                     ships[id].fx_fire = &fx_fire1;
-                    break;
-                case 6:
-                case 7:
-                case 8:
+                } else if (select < 92) {
                     ships[id].color_a = GREEN;
                     ships[id].color_b = LIGHT_RED;
                     ships[id].radius = 2;
@@ -385,8 +377,7 @@ int _main(void)
                     ships[id].score = 125;
                     ships[id].ai = ai_dummy;
                     ships[id].fx_fire = &fx_fire1;
-                    break;
-                case 9:
+                } else if (select < 96) {
                     ships[id].color_a = RED;
                     ships[id].color_b = LIGHT_GREEN;
                     ships[id].radius = 3;
@@ -396,7 +387,16 @@ int _main(void)
                     ships[id].score = 250;
                     ships[id].ai = ai_seeker;
                     ships[id].fx_fire = &fx_fire2;
-                    break;
+                } else {
+                    ships[id].color_a = LIGHT_MAGENTA;
+                    ships[id].color_b = LIGHT_GREEN;
+                    ships[id].radius = 5;
+                    ships[id].fire_delay = 200;
+                    ships[id].hp = 10;
+                    ships[id].hp_max = 10;
+                    ships[id].score = 1000;
+                    ships[id].ai = ai_seeker;
+                    ships[id].fx_fire = &fx_fire3;
                 }
             }
         }

@@ -107,6 +107,27 @@ struct sample fx_fire2 = {
     }
 };
 
+struct sample fx_fire3 = {
+    .priority = 1,
+    .length = 14,
+    {
+        {50,  7},
+        {75,  7},
+        {100, 7},
+        {150, 7},
+        {200, 1},
+        {250, 1},
+        {300, 1},
+        {370, 1},
+        {360, 1},
+        {350, 1},
+        {340, 1},
+        {330, 1},
+        {320, 1},
+        {310, 1}
+    }
+};
+
 struct sample fx_hit = {
     .priority = 5,
     .length = 5,
