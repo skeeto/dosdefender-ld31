@@ -222,8 +222,10 @@ static void print_game_over()
 
 static void print_exit_help()
 {
-    vga_print((struct point){76, 150}, LIGHT_GRAY,
+    vga_print((struct point){76, 160}, LIGHT_GRAY,
               "PRESS ANY KEY TO EXIT TO DOS");
+    vga_print((struct point){100, 150}, LIGHT_GRAY,
+              "HOLD FIRE TO RESTART");
 }
 
 static void print_title(bool clear)
@@ -316,28 +318,15 @@ static void ai_seeker(int i)
     ship_fire(i);
 }
 
-int _main(void)
-{
-    rand_seed += get_tick();
-    if (!joystick_detected()) {
-        print("DOS Defender requires a joystick!$");
-        return -1;
-    }
+static bool ending_played = false;
 
-    /* Allocate memory. */
+static void clear()
+{
+    free();
     bullets = sbrk(bullets_max * sizeof(bullets[0]));
     particles = sbrk(particles_max * sizeof(particles[0]));
     ships = sbrk(ships_max * sizeof(ships[0]));
 
-    /* Initialize Interface */
-    vga_on();
-    // TODO: hardcoded calibration is temporary
-    joystick_config[0].xmax = joystick_config[0].ymax = 254;
-    joystick_config[0].xmin = joystick_config[0].ymin = 1;
-    joystick_config[0].xcenter = joystick_config[0].ycenter = 128;
-    //joystick_calibrate();
-
-    /* Initialize Player */
     ships[0] = (struct ship) {
         .x = VGA_PWIDTH / 2 * SCALE,
         .y = VGA_PHEIGHT / 2 * SCALE,
@@ -351,13 +340,31 @@ int _main(void)
         .ai = ai_player,
         .fx_fire = &fx_fire0
     };
-
-    /* Initialize Sound */
-    bool ending_played = false;
+    ticks = 0;
+    ending_played = false;
+    speaker.sample = 0;
     speaker_play(&speaker, &fx_intro_music);
+    vga_clear(BACKGROUND);
+}
+
+int _main(void)
+{
+    rand_seed += get_tick();
+    if (!joystick_detected()) {
+        print("DOS Defender requires a joystick!$");
+        return -1;
+    }
+
+    /* Initialize Interface */
+    vga_on();
+    // TODO: hardcoded calibration is temporary
+    joystick_config[0].xmax = joystick_config[0].ymax = 254;
+    joystick_config[0].xmin = joystick_config[0].ymin = 1;
+    joystick_config[0].xcenter = joystick_config[0].ycenter = 128;
+    //joystick_calibrate();
 
     /* Main Loop */
-    vga_clear(BACKGROUND);
+    clear();
     for (;;) {
         speaker_step(&speaker);
         if (randn(50) == 0) {
@@ -430,15 +437,25 @@ int _main(void)
         }
 
         if (ships[0].hp == 0) {
+            struct joystick joy;
+            joystick_read(&joy);
             if (!ending_played) {
                 speaker_play(&speaker, &fx_end_music);
                 ending_played = true;
             } else if (!speaker.sample) {
                 print_exit_help();
+                if (joy.a) {
+                    clear();
+                    continue;
+                }
             }
             print_game_over();
             if (kbhit())
                 break;
+            if (joy.b) { // restart early
+                clear();
+                continue;
+            }
         }
         for (int i = 0; i < particles_max; i++) {
             particle_draw(i, true);
