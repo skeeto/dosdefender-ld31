@@ -316,6 +316,18 @@ static void power_teleport(void)
     ships[0].dy = 0;
 }
 
+static void power_radius_up(void)
+{
+    ship_draw(0, true);
+    ships[0].radius = min(5, ships[0].radius + 1);
+}
+
+static void power_radius_down(void)
+{
+    ship_draw(0, true);
+    ships[0].radius = max(1, ships[0].radius - 1);
+}
+
 static void powerup_random(int id)
 {
     if (randn(ships[id].drop_rate) == 0) {
@@ -328,12 +340,18 @@ static void powerup_random(int id)
             } else if (select < 75) {
                 powerups[p].power = power_fire_delay_down;
                 powerups[p].color = LIGHT_BLUE;
-            } else if (select < 99) {
+            } else if (select < 95) {
                 powerups[p].power = power_fire_damage_up;
                 powerups[p].color = LIGHT_RED;
+            } else if (select < 97) {
+                powerups[p].power = power_radius_up;
+                powerups[p].color = LIGHT_MAGENTA;
+            } else if (select < 99) {
+                powerups[p].power = power_radius_down;
+                powerups[p].color = WHITE;
             } else {
                 powerups[p].power = power_teleport;
-                powerups[p].color = LIGHT_MAGENTA;
+                powerups[p].color = YELLOW;
             }
         }
     }
