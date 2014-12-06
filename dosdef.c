@@ -403,8 +403,8 @@ int _main(void)
                     ships[id].radius = 3;
                     ships[id].fire_delay = 50;
                     ships[id].fire_damage = 25;
-                    ships[id].hp = 5;
-                    ships[id].hp_max = 5;
+                    ships[id].hp = 50;
+                    ships[id].hp_max = 50;
                     ships[id].score = 250;
                     ships[id].ai = ai_seeker;
                     ships[id].fx_fire = &fx_fire2;
