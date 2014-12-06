@@ -140,6 +140,15 @@ struct sample fx_hit = {
     }
 };
 
+struct sample fx_powerup = {
+    .priority = 50,
+    .length = 2,
+    {
+        {800, 3},
+        {900, 3}
+    }
+};
+
 struct speaker {
     struct sample *sample;
     int index, step;

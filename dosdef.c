@@ -17,6 +17,7 @@
 
 typedef unsigned int tick_t;
 typedef void (*ai_t)(int id);
+typedef void (*power_t)(void);
 
 static tick_t ticks;
 static unsigned score;
@@ -32,6 +33,7 @@ struct ship {
     uint8_t radius;
     uint8_t fire_delay;
     uint8_t fire_damage;
+    uint8_t drop_rate;
     uint8_t color_a, color_b;
     uint8_t hp, hp_max;
 };
@@ -50,6 +52,14 @@ struct particle {
     bool alive;
 };
 
+struct powerup {
+    int32_t x, y;
+    tick_t birthtick;
+    power_t power;
+    bool alive;
+    uint8_t color;
+};
+
 static struct bullet *bullets;
 static size_t bullets_max = 32;
 
@@ -58,6 +68,9 @@ static size_t particles_max = 64;
 
 static struct ship *ships;
 static size_t ships_max = 12;
+
+static struct powerup *powerups;
+static size_t powerups_max = 8;
 
 static int joystick_detected_cache = 2;
 
@@ -73,6 +86,7 @@ static bool joystick_detected()
 
 static void burn(int32_t x, int32_t y);
 static void ship_draw(int id, bool clear);
+static void powerup_random(int id);
 
 static void bullet_draw(int i, bool clear)
 {
@@ -109,6 +123,8 @@ static void bullet_step(int i)
                     ship_draw(id, true);
                     if (ships[0].hp > 0)
                         score += ships[id].score;
+                    if (id != 0)
+                        powerup_random(id);
                     speaker_play(&speaker, &fx_explode);
                 } else if (id == 0) {
                     speaker_play(&speaker, &fx_hit);
@@ -219,6 +235,79 @@ static void ship_step(int i)
     if (ships[i].hp < ships[i].hp_max / 2) {
         if ((randn(ships[i].hp < 1 ? 1 : ships[i].hp) < 10))
             burn(ships[i].x, ships[i].y);
+    }
+}
+
+static void powerup_draw(int i, bool clear)
+{
+    int x = powerups[i].x / SCALE;
+    int y = powerups[i].y / SCALE;
+    uint8_t color;
+    tick_t tick = ticks;
+    if (clear) {
+        color = BACKGROUND;
+        tick--;
+    } else {
+        color = powerups[i].color;
+    }
+    int size = 0 + (tick / 8) % 3;
+    vga_line((struct point){x - size, y},
+             (struct point){x + size, y}, color);
+    vga_line((struct point){x, y - size},
+             (struct point){x, y + size}, color);
+}
+
+static void powerup_step(int i)
+{
+    int px = powerups[i].x / SCALE;
+    int py = powerups[i].y / SCALE;
+    int sx = ships[0].x / SCALE;
+    int sy = ships[0].y / SCALE;
+    if (px >= sx - 4 &&
+        py >= sy - 4 &&
+        px <= sx + 4 &&
+        py <= sy + 4) {
+        powerups[i].power();
+        powerups[i].alive = false;
+        speaker_play(&speaker, &fx_powerup);
+    }
+}
+
+static int powerup_drop(int32_t x, int32_t y)
+{
+    int choice = -1;
+    for (int i = 0; i < powerups_max; i++) {
+        if (!powerups[i].alive) {
+            choice = i;
+            break;
+        }
+    }
+    if (choice >= 0) {
+        powerups[choice].x = x;
+        powerups[choice].y = y;
+        powerups[choice].birthtick = ticks;
+        powerups[choice].alive = true;
+    }
+    return choice;
+}
+
+static void power_heal(void)
+{
+    ships[0].hp = min(ships[0].hp + randn(25) + 25, ships[0].hp_max);
+}
+
+static void powerup_random(int id)
+{
+    if (randn(ships[id].drop_rate) == 0) {
+        int p = powerup_drop(ships[id].x, ships[id].y);
+        if (p >= 0) {
+            switch (randn(1)) {
+            case 0:
+                powerups[p].power = power_heal;
+                powerups[p].color = LIGHT_GREEN;
+                break;
+            }
+        }
     }
 }
 
@@ -343,6 +432,7 @@ static void clear()
     bullets = sbrk(bullets_max * sizeof(bullets[0]));
     particles = sbrk(particles_max * sizeof(particles[0]));
     ships = sbrk(ships_max * sizeof(ships[0]));
+    powerups = sbrk(powerups_max * sizeof(powerups[0]));
 
     rand_seed += get_tick();
     ships[0] = (struct ship) {
@@ -397,6 +487,7 @@ int _main(void)
                     ships[id].radius = 2;
                     ships[id].fire_delay = 100;
                     ships[id].fire_damage = 10;
+                    ships[id].drop_rate = 16;
                     ships[id].hp = 10;
                     ships[id].hp_max = 10;
                     ships[id].score = 100;
@@ -408,6 +499,7 @@ int _main(void)
                     ships[id].radius = 2;
                     ships[id].fire_delay = 120;
                     ships[id].fire_damage = 10;
+                    ships[id].drop_rate = 10;
                     ships[id].hp = 20;
                     ships[id].hp_max = 20;
                     ships[id].score = 125;
@@ -419,6 +511,7 @@ int _main(void)
                     ships[id].radius = 1;
                     ships[id].fire_delay = 20;
                     ships[id].fire_damage = 1;
+                    ships[id].drop_rate = 1;
                     ships[id].hp = 1;
                     ships[id].hp_max = 1;
                     ships[id].score = 500;
@@ -430,6 +523,7 @@ int _main(void)
                     ships[id].radius = 3;
                     ships[id].fire_delay = 50;
                     ships[id].fire_damage = 25;
+                    ships[id].drop_rate = 8;
                     ships[id].hp = 50;
                     ships[id].hp_max = 50;
                     ships[id].score = 250;
@@ -439,8 +533,9 @@ int _main(void)
                     ships[id].color_a = LIGHT_MAGENTA;
                     ships[id].color_b = LIGHT_CYAN;
                     ships[id].radius = 5;
-                    ships[id].fire_delay = 200;
+                    ships[id].fire_delay = 120;
                     ships[id].fire_damage = 50;
+                    ships[id].drop_rate = 6;
                     ships[id].hp = 100;
                     ships[id].hp_max = 100;
                     ships[id].score = 1000;
@@ -492,6 +587,14 @@ int _main(void)
                 particle_step(i);
                 if (particles[i].alive)
                     particle_draw(i, false);
+            }
+        }
+        for (int i = 0; i < powerups_max; i++) {
+            if (powerups[i].alive) {
+                powerup_draw(i, true);
+                powerup_step(i);
+                if (powerups[i].alive)
+                    powerup_draw(i, false);
             }
         }
         for (int i = 0; i < ships_max; i++) {
