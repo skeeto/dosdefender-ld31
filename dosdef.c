@@ -19,6 +19,7 @@ typedef void (*ai_t)(int id);
 
 static tick_t ticks;
 static unsigned score;
+static unsigned best_score;
 static struct speaker speaker;
 
 struct ship {
@@ -341,6 +342,9 @@ static void clear()
         .fx_fire = &fx_fire0
     };
     ticks = 0;
+    if (score > best_score)
+        best_score = score;
+    score = 0;
     ending_played = false;
     speaker.sample = 0;
     speaker_play(&speaker, &fx_intro_music);
@@ -486,9 +490,11 @@ int _main(void)
         vga_vsync();
         ticks++;
     }
+    if (score > best_score)
+        best_score = score;
     vga_off();
     tone_off();
-    print("score: $");
-    printl(score);
+    print("best score: $");
+    printl(best_score);
     return 0;
 }
