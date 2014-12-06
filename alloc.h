@@ -8,7 +8,9 @@ static char *hbreak = &_heap;
 
 static void *sbrk(size_t size)
 {
-    void *ptr = hbreak;
+    char *ptr = hbreak;
+    for (size_t i = 0; i < size; i++)
+        ptr[i] = 0;
     hbreak += size;
     return ptr;
 }
