@@ -341,8 +341,13 @@ int _main(void)
         if (randn(50) == 0) {
             int id = spawn(1);
             if (id > 0) {
-                switch (randn(2)) {
+                switch (randn(10)) {
                 case 0:
+                case 1:
+                case 2:
+                case 3:
+                case 4:
+                case 5:
                     ships[id].color_a = BROWN;
                     ships[id].color_b = LIGHT_RED;
                     ships[id].fire_delay = 100;
@@ -351,14 +356,25 @@ int _main(void)
                     ships[id].score = 100;
                     ships[id].ai = ai_seeker;
                     break;
-                case 1:
+                case 6:
+                case 7:
+                case 8:
                     ships[id].color_a = GREEN;
                     ships[id].color_b = LIGHT_RED;
                     ships[id].fire_delay = 120;
                     ships[id].hp = 2;
                     ships[id].hp_max = 2;
-                    ships[id].score = 25;
+                    ships[id].score = 125;
                     ships[id].ai = ai_dummy;
+                    break;
+                case 9:
+                    ships[id].color_a = RED;
+                    ships[id].color_b = LIGHT_GREEN;
+                    ships[id].fire_delay = 50;
+                    ships[id].hp = 3;
+                    ships[id].hp_max = 2;
+                    ships[id].score = 250;
+                    ships[id].ai = ai_seeker;
                     break;
                 }
             }
