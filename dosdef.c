@@ -6,6 +6,7 @@
 #include "time.h"
 #include "alloc.h"
 #include "keyboard.h"
+#include "speaker.h"
 
 #define SCALE              1000
 #define BACKGROUND         17
@@ -19,6 +20,7 @@ typedef void (*ai_t)(int id);
 
 static tick_t ticks;
 static unsigned score;
+static struct speaker speaker;
 
 struct ship {
     int32_t x, y, dx, dy;
@@ -86,6 +88,7 @@ static void bullet_step(int i)
                         burn(ships[id].x, ships[id].y);
                     ship_draw(id, true);
                     score += ships[id].score;
+                    speaker_play(&speaker, &fx_explode);
                 }
                 break;
             }
@@ -250,7 +253,8 @@ static void ai_player(int i)
         ships[i].dx += ((joy.x - joystick_config[0].xcenter) * 100) / xrange;
         ships[i].dy += ((joy.y - joystick_config[0].xcenter) * 100) / yrange;
         if (joy.a)
-            ship_fire(i);
+            if (ship_fire(i) >= 0)
+                speaker_play(&speaker, &fx_fire0);
     }
 }
 
@@ -274,8 +278,10 @@ static void ai_dummy(int i)
     }
     ships[i].dx = (tx - ships[i].x) / 200;
     ships[i].dy = (ty - ships[i].y) / 200;
-    if (randn(250) == 0)
-        ship_fire(i);
+    if (randn(250) == 0) {
+        if (ship_fire(i) >= 0)
+            speaker_play(&speaker, &fx_fire1);
+    }
 }
 
 static void ai_seeker(int i)
@@ -285,7 +291,8 @@ static void ai_seeker(int i)
     int dy = ships[0].y - ships[i].y;
     ships[i].dx = dx / 250 + randn(noise) - noise / 2;
     ships[i].dy = dy / 250 + randn(noise) - noise / 2;
-    ship_fire(i);
+    if (ship_fire(i) >= 0)
+        speaker_play(&speaker, &fx_fire1);
 }
 
 int _main(void)
@@ -309,7 +316,7 @@ int _main(void)
     joystick_config[0].xcenter = joystick_config[0].ycenter = 128;
     //joystick_calibrate();
 
-    /* Initialize Ships */
+    /* Initialize Player */
     ships[0] = (struct ship) {
         .x = VGA_PWIDTH / 2 * SCALE,
         .y = VGA_PHEIGHT / 2 * SCALE,
@@ -321,9 +328,14 @@ int _main(void)
         .ai = ai_player
     };
 
+    /* Initialize Sound */
+    bool ending_played = false;
+    speaker_play(&speaker, &fx_intro_music);
+
     /* Main Loop */
     vga_clear(BACKGROUND);
     for (;;) {
+        speaker_step(&speaker);
         if (randn(10) == 0) {
             int id = spawn(1);
             if (id > 0) {
@@ -343,7 +355,7 @@ int _main(void)
                     ships[id].fire_delay = 120;
                     ships[id].hp = 2;
                     ships[id].hp_max = 2;
-                    ships[id].score = 100;
+                    ships[id].score = 25;
                     ships[id].ai = ai_dummy;
                     break;
                 }
@@ -351,6 +363,10 @@ int _main(void)
         }
 
         if (ships[0].hp == 0) {
+            if (!ending_played) {
+                speaker_play(&speaker, &fx_end_music);
+                ending_played = true;
+            }
             print_game_over();
             if (kbhit())
                 break;
@@ -385,6 +401,7 @@ int _main(void)
         ticks++;
     }
     vga_off();
+    tone_off();
     print("score: $");
     printl(score);
     return 0;
