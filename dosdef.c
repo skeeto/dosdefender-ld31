@@ -17,11 +17,13 @@ typedef unsigned int tick_t;
 typedef void (*ai_t)(int id);
 
 static tick_t ticks;
+static unsigned score;
 
 struct ship {
     int32_t x, y, dx, dy;
     tick_t last_fire;
     ai_t ai;
+    uint16_t score;
     uint8_t fire_delay;
     uint8_t color_a, color_b;
     uint8_t hp, hp_max;
@@ -278,7 +280,8 @@ int _main(void)
                 ships[id].color_a = BROWN;
                 ships[id].color_b = LIGHT_RED;
                 ships[id].fire_delay = 100;
-                ships[id].hp_max = 2;
+                ships[id].hp_max = 1;
+                ships[id].score = 100;
             }
         }
 
@@ -317,5 +320,7 @@ int _main(void)
         ticks++;
     }
     vga_off();
+    print("score: $");
+    printl(score);
     return 0;
 }
