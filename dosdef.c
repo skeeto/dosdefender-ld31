@@ -13,7 +13,6 @@
 #define PLAYER             14
 #define BULLET_SPEED       3
 #define PARTICLE_MAX_AGE   50
-#define SHIP_RADIUS        2
 
 typedef unsigned int tick_t;
 typedef void (*ai_t)(int id);
@@ -27,6 +26,7 @@ struct ship {
     tick_t last_fire;
     ai_t ai;
     uint16_t score;
+    uint8_t radius;
     uint8_t fire_delay;
     uint8_t color_a, color_b;
     uint8_t hp, hp_max;
@@ -52,7 +52,7 @@ static struct particle *particles;
 static size_t particles_max = 64;
 
 static struct ship *ships;
-static size_t ships_max = 16;
+static size_t ships_max = 12;
 
 static void burn(int32_t x, int32_t y);
 static void ship_draw(int id, bool clear);
@@ -65,10 +65,10 @@ static void bullet_draw(int i, bool clear)
 
 static bool bullet_in_ship(int bi, int si)
 {
-    return bullets[bi].x >= ships[si].x - (SCALE * SHIP_RADIUS) &&
-           bullets[bi].y >= ships[si].y - (SCALE * SHIP_RADIUS) &&
-           bullets[bi].x <= ships[si].x + (SCALE * SHIP_RADIUS) &&
-           bullets[bi].y <= ships[si].y + (SCALE * SHIP_RADIUS);
+    return bullets[bi].x >= ships[si].x - (SCALE * ships[si].radius) &&
+           bullets[bi].y >= ships[si].y - (SCALE * ships[si].radius) &&
+           bullets[bi].x <= ships[si].x + (SCALE * ships[si].radius) &&
+           bullets[bi].y <= ships[si].y + (SCALE * ships[si].radius);
 }
 
 static void bullet_step(int i)
@@ -87,7 +87,8 @@ static void bullet_step(int i)
                     for (int j = 0; j < 10; j++)
                         burn(ships[id].x, ships[id].y);
                     ship_draw(id, true);
-                    score += ships[id].score;
+                    if (ships[0].hp > 0)
+                        score += ships[id].score;
                     speaker_play(&speaker, &fx_explode);
                 } else if (id == 0) {
                     speaker_play(&speaker, &fx_hit);
@@ -171,11 +172,12 @@ static void burn(int32_t x, int32_t y)
 static void ship_draw(int id, bool clear)
 {
     struct point c = {ships[id].x / SCALE, ships[id].y / SCALE};
-    for (int i = -1; i <= 1; i++) {
-        struct point ha = {ships[id].x / SCALE - i, ships[id].y / SCALE - 2};
-        struct point hb = {ships[id].x / SCALE - i, ships[id].y / SCALE + 2};
-        struct point va = {ships[id].x / SCALE - 2, ships[id].y / SCALE - i};
-        struct point vb = {ships[id].x / SCALE + 2, ships[id].y / SCALE - i};
+    int r = ships[id].radius;
+    for (int i = -r + 1; i < r; i++) {
+        struct point ha = {ships[id].x / SCALE - i, ships[id].y / SCALE - r};
+        struct point hb = {ships[id].x / SCALE - i, ships[id].y / SCALE + r};
+        struct point va = {ships[id].x / SCALE - r, ships[id].y / SCALE - i};
+        struct point vb = {ships[id].x / SCALE + r, ships[id].y / SCALE - i};
         vga_pixel(ha, clear ? BACKGROUND : ships[id].color_a);
         vga_pixel(va, clear ? BACKGROUND : ships[id].color_a);
         vga_pixel(hb, clear ? BACKGROUND : ships[id].color_a);
@@ -324,6 +326,7 @@ int _main(void)
         .y = VGA_PHEIGHT / 2 * SCALE,
         .color_a = YELLOW,
         .color_b = LIGHT_BLUE,
+        .radius = 2,
         .fire_delay = 10,
         .hp = 10,
         .hp_max = 10,
@@ -350,6 +353,7 @@ int _main(void)
                 case 5:
                     ships[id].color_a = BROWN;
                     ships[id].color_b = LIGHT_RED;
+                    ships[id].radius = 2;
                     ships[id].fire_delay = 100;
                     ships[id].hp = 1;
                     ships[id].hp_max = 1;
@@ -361,6 +365,7 @@ int _main(void)
                 case 8:
                     ships[id].color_a = GREEN;
                     ships[id].color_b = LIGHT_RED;
+                    ships[id].radius = 2;
                     ships[id].fire_delay = 120;
                     ships[id].hp = 2;
                     ships[id].hp_max = 2;
@@ -370,8 +375,9 @@ int _main(void)
                 case 9:
                     ships[id].color_a = RED;
                     ships[id].color_b = LIGHT_GREEN;
+                    ships[id].radius = 3;
                     ships[id].fire_delay = 50;
-                    ships[id].hp = 3;
+                    ships[id].hp = 5;
                     ships[id].hp_max = 2;
                     ships[id].score = 250;
                     ships[id].ai = ai_seeker;
