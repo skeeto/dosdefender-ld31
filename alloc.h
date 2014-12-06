@@ -15,4 +15,9 @@ static void *sbrk(size_t size)
     return ptr;
 }
 
+static void free(void)
+{
+    hbreak = &_heap;
+}
+
 #endif
