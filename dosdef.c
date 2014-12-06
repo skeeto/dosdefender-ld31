@@ -541,7 +541,7 @@ int _main(void)
                     ships[id].radius = 2;
                     ships[id].fire_delay = 100;
                     ships[id].fire_damage = 10;
-                    ships[id].drop_rate = 16;
+                    ships[id].drop_rate = 8;
                     ships[id].hp = 10;
                     ships[id].hp_max = 10;
                     ships[id].score = 100;
@@ -553,7 +553,7 @@ int _main(void)
                     ships[id].radius = 2;
                     ships[id].fire_delay = 120;
                     ships[id].fire_damage = 10;
-                    ships[id].drop_rate = 10;
+                    ships[id].drop_rate = 5;
                     ships[id].hp = 20;
                     ships[id].hp_max = 20;
                     ships[id].score = 125;
@@ -577,7 +577,7 @@ int _main(void)
                     ships[id].radius = 3;
                     ships[id].fire_delay = 50;
                     ships[id].fire_damage = 25;
-                    ships[id].drop_rate = 8;
+                    ships[id].drop_rate = 4;
                     ships[id].hp = 50;
                     ships[id].hp_max = 50;
                     ships[id].score = 250;
@@ -589,7 +589,7 @@ int _main(void)
                     ships[id].radius = 5;
                     ships[id].fire_delay = 120;
                     ships[id].fire_damage = 50;
-                    ships[id].drop_rate = 6;
+                    ships[id].drop_rate = 3;
                     ships[id].hp = 100;
                     ships[id].hp_max = 100;
                     ships[id].score = 1000;
