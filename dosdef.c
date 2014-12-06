@@ -4,6 +4,7 @@
 #include "vga.h"
 #include "rand.h"
 #include "time.h"
+#include "alloc.h"
 
 #define SCALE              1000
 #define BACKGROUND         17
@@ -26,20 +27,20 @@ struct bullet {
     int32_t x, y, dx, dy;
     tick_t birthtick;
     uint8_t color;
+    bool alive;
 };
 
 struct particle {
     int32_t x, y;
     tick_t birthtick;
+    bool alive;
 };
 
-static struct bullet bullets[64];
-#define MAX_BULLETS (sizeof(bullets) / sizeof(bullets[0]))
-static bool bullets_alive[MAX_BULLETS];
+static struct bullet *bullets;
+static size_t bullets_max = 128;
 
-static struct particle particles[64];
-#define MAX_PARTICLES (sizeof(particles) / sizeof(particles[0]))
-static bool particles_alive[MAX_PARTICLES];
+static struct particle *particles;
+static size_t particles_max = 128;
 
 static void ship_draw(struct ship *ship, bool clear)
 {
@@ -71,7 +72,7 @@ static void bullet_step(int i)
     bullets[i].y += bullets[i].dy;
     if (bullets[i].x < 0 || bullets[i].x > VGA_PWIDTH * SCALE ||
         bullets[i].y < 0 || bullets[i].y > VGA_PHEIGHT * SCALE)
-        bullets_alive[i] = false;
+        bullets[i].alive = false;
 }
 
 static void ship_step(struct ship *ship)
@@ -88,15 +89,15 @@ static int ship_fire(struct ship *source)
         return -1;
     source->last_fire = ticks;
     int choice = 0;
-    for (int i = 0; i < MAX_BULLETS; i++) {
-        if (!bullets_alive[i]) {
+    for (int i = 0; i < bullets_max; i++) {
+        if (!bullets[i].alive) {
             choice = i;
             break;
         } else if (bullets[i].birthtick < bullets[choice].birthtick) {
             choice = i;
         }
     }
-    if (bullets_alive[choice])
+    if (bullets[choice].alive)
         bullet_draw(choice, true);
     bullets[choice].x = source->x + source->dx / 100;
     bullets[choice].y = source->y + source->dy / 100;
@@ -104,7 +105,7 @@ static int ship_fire(struct ship *source)
     bullets[choice].dy = source->dy * BULLET_SPEED;
     bullets[choice].color = source->color_b;
     bullets[choice].birthtick = ticks;
-    bullets_alive[choice] = true;
+    bullets[choice].alive = true;
     return choice;
 }
 
@@ -124,7 +125,7 @@ static void particle_draw(int i, bool clear)
 static void particle_step(int i)
 {
     if (ticks - particles[i].birthtick > PARTICLE_MAX_AGE) {
-        particles_alive[i] = false;
+        particles[i].alive = false;
         particle_draw(i, true);
     } else {
         int speed = 2;
@@ -136,17 +137,17 @@ static void particle_step(int i)
 static void burn(int32_t x, int32_t y)
 {
     int choice = 0;
-    for (int i = 0; i < MAX_PARTICLES; i++) {
-        if (!particles_alive[i]) {
+    for (int i = 0; i < particles_max; i++) {
+        if (!particles[i].alive) {
             choice = i;
             break;
         } else if (particles[i].birthtick < particles[choice].birthtick) {
             choice = i;
         }
     }
-    if (particles_alive[choice])
+    if (particles[choice].alive)
         particle_draw(choice, true);
-    particles_alive[choice] = true;
+    particles[choice].alive = true;
     particles[choice].x = x;
     particles[choice].y = y;
     particles[choice].birthtick = ticks;
@@ -166,6 +167,10 @@ int _main(void)
         print("DOS Defender requires a joystick!$");
         return -1;
     }
+
+    /* Allocate memory. */
+    bullets = sbrk(bullets_max * sizeof(bullets[0]));
+    particles = sbrk(particles_max * sizeof(particles[0]));
 
     vga_on();
     // TODO: this is temporary
@@ -197,18 +202,18 @@ int _main(void)
             burn(player.x, player.y);
         if (joy.a)
             ship_fire(&player);
-        for (int i = 0; i < MAX_BULLETS; i++) {
+        for (int i = 0; i < bullets_max; i++) {
             bullet_draw(i, true);
-            if (bullets_alive[i]) {
+            if (bullets[i].alive) {
                 bullet_step(i);
                 bullet_draw(i, false);
             }
         }
-        for (int i = 0; i < MAX_PARTICLES; i++) {
+        for (int i = 0; i < particles_max; i++) {
             particle_draw(i, true);
-            if (particles_alive[i]) {
+            if (particles[i].alive) {
                 particle_step(i);
-                if (particles_alive[i])
+                if (particles[i].alive)
                     particle_draw(i, false);
             }
         }
