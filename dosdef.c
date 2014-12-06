@@ -2,30 +2,44 @@
 #include "print.h"
 #include "joystick.h"
 #include "vga.h"
+#include "rand.h"
+#include "time.h"
 
-#define SCALE        1000
-#define BACKGROUND   17
-#define PLAYER       14
-#define BULLET_SPEED 3
+#define SCALE              1000
+#define BACKGROUND         17
+#define PLAYER             14
+#define BULLET_SPEED       3
+#define PARTICLE_MAX_AGE   50
 
-unsigned ticks;
+typedef unsigned int tick_t;
+
+static tick_t ticks;
 
 struct ship {
     int32_t x, y, dx, dy;
-    unsigned last_fire;
+    tick_t last_fire;
     uint8_t fire_delay;
     uint8_t color_a, color_b;
 };
 
 struct bullet {
     int32_t x, y, dx, dy;
-    unsigned birthtick;
+    tick_t birthtick;
     uint8_t color;
 };
 
-struct bullet bullets[64];
+struct particle {
+    int32_t x, y;
+    tick_t birthtick;
+};
+
+static struct bullet bullets[64];
 #define MAX_BULLETS (sizeof(bullets) / sizeof(bullets[0]))
-bool bullets_alive[MAX_BULLETS];
+static bool bullets_alive[MAX_BULLETS];
+
+static struct particle particles[64];
+#define MAX_PARTICLES (sizeof(particles) / sizeof(particles[0]))
+static bool particles_alive[MAX_PARTICLES];
 
 static void ship_draw(struct ship *ship, bool clear)
 {
@@ -94,6 +108,50 @@ static int ship_fire(struct ship *source)
     return choice;
 }
 
+static void particle_draw(int i, bool clear)
+{
+    struct point c = {particles[i].x / SCALE, particles[i].y / SCALE};
+    if (clear) {
+        vga_pixel(c, BACKGROUND);
+    } else {
+        int age = ticks - particles[i].birthtick;
+        vga_pixel(c, age > PARTICLE_MAX_AGE * 3 / 4
+                  ? ((rand() % 5) + 24)    // smoke
+                  : ((rand() % 5) + 40));  // fire
+    }
+}
+
+static void particle_step(int i)
+{
+    if (ticks - particles[i].birthtick > PARTICLE_MAX_AGE) {
+        particles_alive[i] = false;
+        particle_draw(i, true);
+    } else {
+        int speed = 2;
+        particles[i].x += (rand() % (SCALE * speed)) - (SCALE * speed / 2);
+        particles[i].y += (rand() % (SCALE * speed)) - (SCALE * speed / 2);
+    }
+}
+
+static void burn(int32_t x, int32_t y)
+{
+    int choice = 0;
+    for (int i = 0; i < MAX_PARTICLES; i++) {
+        if (!particles_alive[i]) {
+            choice = i;
+            break;
+        } else if (particles[i].birthtick < particles[choice].birthtick) {
+            choice = i;
+        }
+    }
+    if (particles_alive[choice])
+        particle_draw(choice, true);
+    particles_alive[choice] = true;
+    particles[choice].x = x;
+    particles[choice].y = y;
+    particles[choice].birthtick = ticks;
+}
+
 static bool joystick_detected()
 {
     struct joystick joy;
@@ -103,6 +161,7 @@ static bool joystick_detected()
 
 int _main(void)
 {
+    rand_seed += get_tick();
     if (!joystick_detected()) {
         print("DOS Defender requires a joystick!$");
         return -1;
@@ -134,6 +193,8 @@ int _main(void)
         player.dy += ((joy.y - jconf.xcenter) * 100) / yrange;
         ship_step(&player);
         ship_draw(&player, false);
+        if (joy.b) // TODO: temporary
+            burn(player.x, player.y);
         if (joy.a)
             ship_fire(&player);
         for (int i = 0; i < MAX_BULLETS; i++) {
@@ -141,6 +202,14 @@ int _main(void)
             if (bullets_alive[i]) {
                 bullet_step(i);
                 bullet_draw(i, false);
+            }
+        }
+        for (int i = 0; i < MAX_PARTICLES; i++) {
+            particle_draw(i, true);
+            if (particles_alive[i]) {
+                particle_step(i);
+                if (particles_alive[i])
+                    particle_draw(i, false);
             }
         }
         vga_vsync();
