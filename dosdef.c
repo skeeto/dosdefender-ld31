@@ -607,6 +607,7 @@ int _main(void)
                     ships[id].score = 10000;
                     ships[id].ai = ai_seeker;
                     ships[id].fx_fire = &fx_fire3;
+                    speaker_play(&speaker, &fx_boss);
                 } else {
                     ships[id].hp = 0;
                 }
