@@ -23,7 +23,7 @@ struct bullet {
     uint8_t color;
 };
 
-struct bullet bullets[128];
+struct bullet bullets[64];
 #define MAX_BULLETS (sizeof(bullets) / sizeof(bullets[0]))
 bool bullets_alive[MAX_BULLETS];
 
@@ -82,6 +82,8 @@ static int ship_fire(struct ship *source)
             choice = i;
         }
     }
+    if (bullets_alive[choice])
+        bullet_draw(choice, true);
     bullets[choice].x = source->x + source->dx / 100;
     bullets[choice].y = source->y + source->dy / 100;
     bullets[choice].dx = source->dx * BULLET_SPEED;
