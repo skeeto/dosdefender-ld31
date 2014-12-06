@@ -258,6 +258,7 @@ static void ai_player(int i)
         joystick_read(&joy);
         ships[i].dx += ((joy.x - joystick_config[0].xcenter) * 100) / xrange;
         ships[i].dy += ((joy.y - joystick_config[0].xcenter) * 100) / yrange;
+        rand_seed += joy.x - joy.y; // mix inputs into random state
         if (joy.a)
             ship_fire(i);
     }
