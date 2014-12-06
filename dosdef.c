@@ -504,6 +504,14 @@ static void clear()
     vga_clear(BACKGROUND);
 }
 
+static bool ship_exists(uint8_t color)
+{
+    for (int i = 1; i < ships_max; i++)
+        if (ships[i].color_a == color)
+            return true;
+    return false;
+}
+
 int _main(void)
 {
     /* Initialize Interface */
@@ -575,7 +583,7 @@ int _main(void)
                     ships[id].score = 250;
                     ships[id].ai = ai_seeker;
                     ships[id].fx_fire = &fx_fire2;
-                } else {
+                } else if (select < 110) {
                     ships[id].color_a = LIGHT_MAGENTA;
                     ships[id].color_b = LIGHT_CYAN;
                     ships[id].radius = 5;
@@ -587,6 +595,20 @@ int _main(void)
                     ships[id].score = 1000;
                     ships[id].ai = ai_seeker;
                     ships[id].fx_fire = &fx_fire3;
+                } else if (!ship_exists(LIGHT_GREEN)) {
+                    ships[id].color_a = LIGHT_GREEN;
+                    ships[id].color_b = YELLOW;
+                    ships[id].radius = 8;
+                    ships[id].fire_delay = 20;
+                    ships[id].fire_damage = 200;
+                    ships[id].drop_rate = 4;
+                    ships[id].hp = 1000;
+                    ships[id].hp_max = 1000;
+                    ships[id].score = 10000;
+                    ships[id].ai = ai_seeker;
+                    ships[id].fx_fire = &fx_fire3;
+                } else {
+                    ships[id].hp = 0;
                 }
             }
         }
