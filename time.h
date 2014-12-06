@@ -1,3 +1,6 @@
+#ifndef TIME_H
+#define TIME_H
+
 static uint32_t get_tick()
 {
     unsigned long result;
@@ -36,3 +39,5 @@ static void msleep(int ms)
         }
     }
 }
+
+#endif
