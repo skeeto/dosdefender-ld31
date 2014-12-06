@@ -12,6 +12,7 @@
 #define PLAYER             14
 #define BULLET_SPEED       3
 #define PARTICLE_MAX_AGE   50
+#define SHIP_RADIUS        2
 
 typedef unsigned int tick_t;
 typedef void (*ai_t)(int id);
@@ -43,18 +44,29 @@ struct particle {
 };
 
 static struct bullet *bullets;
-static size_t bullets_max = 64;
+static size_t bullets_max = 32;
 
 static struct particle *particles;
 static size_t particles_max = 64;
 
 static struct ship *ships;
-static size_t ships_max = 16;
+static size_t ships_max = 8;
+
+static void burn(int32_t x, int32_t y);
+static void ship_draw(int id, bool clear);
 
 static void bullet_draw(int i, bool clear)
 {
     struct point c = {bullets[i].x / SCALE, bullets[i].y / SCALE};
     vga_pixel(c, clear ? BACKGROUND : bullets[i].color);
+}
+
+static bool bullet_in_ship(int bi, int si)
+{
+    return bullets[bi].x >= ships[si].x - (SCALE * SHIP_RADIUS) &&
+           bullets[bi].y >= ships[si].y - (SCALE * SHIP_RADIUS) &&
+           bullets[bi].x <= ships[si].x + (SCALE * SHIP_RADIUS) &&
+           bullets[bi].y <= ships[si].y + (SCALE * SHIP_RADIUS);
 }
 
 static void bullet_step(int i)
@@ -64,6 +76,21 @@ static void bullet_step(int i)
     if (bullets[i].x < 0 || bullets[i].x > VGA_PWIDTH * SCALE ||
         bullets[i].y < 0 || bullets[i].y > VGA_PHEIGHT * SCALE)
         bullets[i].alive = false;
+    for (int id = 0; id < ships_max; id++) {
+        if (ships[id].hp > 0 && ships[id].color_b != bullets[i].color) {
+            if (bullet_in_ship(i, id)) {
+                ships[id].hp--;
+                bullets[i].alive = false; // absorb
+                if (ships[id].hp == 0) {
+                    for (int j = 0; j < 10; j++)
+                        burn(ships[id].x, ships[id].y);
+                    ship_draw(id, true);
+                    score += ships[id].score;
+                }
+                break;
+            }
+        }
+    }
 }
 
 static int ship_fire(int i)
@@ -266,8 +293,8 @@ int _main(void)
         .color_a = YELLOW,
         .color_b = LIGHT_BLUE,
         .fire_delay = 10,
-        .hp = 100,
-        .hp_max = 100,
+        .hp = 10,
+        .hp_max = 10,
         .ai = ai_player
     };
 
