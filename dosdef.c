@@ -263,7 +263,8 @@ static void powerup_step(int i)
     int py = powerups[i].y / SCALE;
     int sx = ships[0].x / SCALE;
     int sy = ships[0].y / SCALE;
-    if (px >= sx - 4 &&
+    if (ships[0].hp > 0 &&
+        px >= sx - 4 &&
         py >= sy - 4 &&
         px <= sx + 4 &&
         py <= sy + 4) {
@@ -296,16 +297,43 @@ static void power_heal(void)
     ships[0].hp = min(ships[0].hp + randn(25) + 25, ships[0].hp_max);
 }
 
+static void power_fire_delay_down(void)
+{
+    ships[0].fire_delay = max(8, ships[0].fire_delay * 3 / 4);
+}
+
+static void power_fire_damage_up(void)
+{
+    ships[0].fire_damage = ships[0].fire_damage * 10 / 9;
+}
+
+static void power_teleport(void)
+{
+    ship_draw(0, true);
+    ships[0].x = (randn(VGA_PWIDTH - 40) + 20) * SCALE;
+    ships[0].y = (randn(VGA_PHEIGHT - 40) + 20) * SCALE;
+    ships[0].dx = 0;
+    ships[0].dy = 0;
+}
+
 static void powerup_random(int id)
 {
     if (randn(ships[id].drop_rate) == 0) {
         int p = powerup_drop(ships[id].x, ships[id].y);
         if (p >= 0) {
-            switch (randn(1)) {
-            case 0:
+            int select = randn(100);
+            if (select < 50) {
                 powerups[p].power = power_heal;
                 powerups[p].color = LIGHT_GREEN;
-                break;
+            } else if (select < 75) {
+                powerups[p].power = power_fire_delay_down;
+                powerups[p].color = LIGHT_BLUE;
+            } else if (select < 99) {
+                powerups[p].power = power_fire_damage_up;
+                powerups[p].color = LIGHT_RED;
+            } else {
+                powerups[p].power = power_teleport;
+                powerups[p].color = LIGHT_MAGENTA;
             }
         }
     }
@@ -441,7 +469,7 @@ static void clear()
         .color_a = YELLOW,
         .color_b = LIGHT_BLUE,
         .radius = 2,
-        .fire_delay = 10,
+        .fire_delay = 25,
         .fire_damage = 10,
         .hp = 100,
         .hp_max = 100,
