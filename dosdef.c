@@ -30,12 +30,12 @@ struct ship {
     ai_t ai;
     struct sample *fx_fire;
     uint16_t score;
+    uint16_t hp, hp_max;
     uint8_t radius;
     uint8_t fire_delay;
     uint8_t fire_damage;
     uint8_t drop_rate;
     uint8_t color_a, color_b;
-    uint8_t hp, hp_max;
 };
 
 struct bullet {
