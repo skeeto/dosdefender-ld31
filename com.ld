@@ -1,4 +1,5 @@
 ENTRY(_main);
+EXTERN(_heap);
 SECTIONS
 {
     . = 0x0100;
@@ -17,6 +18,11 @@ SECTIONS
         *(.rodata*);
         *(COMMON)
         _data_end = .;
+    }
+    . = ALIGN(4);
+    .heap :
+    {
+       _heap = .;
     }
     /DISCARD/ :
     {
