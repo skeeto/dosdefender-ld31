@@ -217,7 +217,7 @@ static void ship_check_bounds(int i)
     }
 }
 
-int spawn(int hp, ai_t ai)
+int spawn(int hp)
 {
     int choice = -1;
     for (int i = 1; i < ships_max; i++) {
@@ -236,7 +236,6 @@ int spawn(int hp, ai_t ai)
             ships[choice].x = randn(VGA_PWIDTH * SCALE);
             ships[choice].y = randn(2) * VGA_PHEIGHT * SCALE;
         }
-        ships[choice].ai = ai;
     }
     return choice;
 }
@@ -253,6 +252,30 @@ static void ai_player(int i)
         if (joy.a)
             ship_fire(i);
     }
+}
+
+static void ai_dummy(int i)
+{
+    int den = 10;
+    tick_t t = (ticks + i * 200) % 1000;
+    int tx, ty;
+    if (t < 250) {
+        tx = VGA_PWIDTH  * SCALE * 1 / den;
+        ty = VGA_PHEIGHT * SCALE * 1 / den;
+    } else if (t < 500) {
+        tx = VGA_PWIDTH  * SCALE * 1 / den;
+        ty = VGA_PHEIGHT * SCALE * (den - 1) / den;
+    } else if (t < 750) {
+        tx = VGA_PWIDTH  * SCALE * (den - 1) / den;
+        ty = VGA_PHEIGHT * SCALE * (den - 1) / den;
+    } else {
+        tx = VGA_PWIDTH  * SCALE * (den - 1) / den;
+        ty = VGA_PHEIGHT * SCALE * 1 / den;
+    }
+    ships[i].dx = (tx - ships[i].x) / 200;
+    ships[i].dy = (ty - ships[i].y) / 200;
+    if (randn(250) == 0)
+        ship_fire(i);
 }
 
 static void ai_seeker(int i)
@@ -301,14 +324,29 @@ int _main(void)
     /* Main Loop */
     vga_clear(BACKGROUND);
     for (;;) {
-        if (randn(100) == 0) {
-            int id = spawn(2, ai_seeker);
-            if (id >= 0) {
-                ships[id].color_a = BROWN;
-                ships[id].color_b = LIGHT_RED;
-                ships[id].fire_delay = 100;
-                ships[id].hp_max = 1;
-                ships[id].score = 100;
+        if (randn(10) == 0) {
+            int id = spawn(1);
+            if (id > 0) {
+                switch (randn(2)) {
+                case 0:
+                    ships[id].color_a = BROWN;
+                    ships[id].color_b = LIGHT_RED;
+                    ships[id].fire_delay = 100;
+                    ships[id].hp = 1;
+                    ships[id].hp_max = 1;
+                    ships[id].score = 100;
+                    ships[id].ai = ai_seeker;
+                    break;
+                case 1:
+                    ships[id].color_a = GREEN;
+                    ships[id].color_b = LIGHT_RED;
+                    ships[id].fire_delay = 120;
+                    ships[id].hp = 2;
+                    ships[id].hp_max = 2;
+                    ships[id].score = 100;
+                    ships[id].ai = ai_dummy;
+                    break;
+                }
             }
         }
 
