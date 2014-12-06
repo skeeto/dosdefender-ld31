@@ -52,7 +52,7 @@ static struct particle *particles;
 static size_t particles_max = 64;
 
 static struct ship *ships;
-static size_t ships_max = 8;
+static size_t ships_max = 16;
 
 static void burn(int32_t x, int32_t y);
 static void ship_draw(int id, bool clear);
@@ -263,7 +263,7 @@ static void ai_player(int i)
 static void ai_dummy(int i)
 {
     int den = 10;
-    tick_t t = (ticks + i * 200) % 1000;
+    tick_t t = (ticks + i * 200 + i * 20) % 1000;
     int tx, ty;
     if (t < 250) {
         tx = VGA_PWIDTH  * SCALE * 1 / den;
@@ -338,7 +338,7 @@ int _main(void)
     vga_clear(BACKGROUND);
     for (;;) {
         speaker_step(&speaker);
-        if (randn(10) == 0) {
+        if (randn(50) == 0) {
             int id = spawn(1);
             if (id > 0) {
                 switch (randn(2)) {
