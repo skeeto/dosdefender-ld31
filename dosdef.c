@@ -89,6 +89,8 @@ static void bullet_step(int i)
                     ship_draw(id, true);
                     score += ships[id].score;
                     speaker_play(&speaker, &fx_explode);
+                } else if (id == 0) {
+                    speaker_play(&speaker, &fx_hit);
                 }
                 break;
             }

@@ -95,6 +95,18 @@ struct sample fx_fire1 = {
     }
 };
 
+struct sample fx_hit = {
+    .priority = 5,
+    .length = 5,
+    {
+        {120, 3},
+        {130, 3},
+        {140, 3},
+        {150, 3},
+        {160, 3}
+    }
+};
+
 struct speaker {
     struct sample *sample;
     int index, step;
