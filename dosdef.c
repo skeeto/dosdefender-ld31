@@ -518,10 +518,10 @@ int _main(void)
     vga_on();
     if (joystick_detected()) {
         // TODO: hardcoded calibration is temporary
-        joystick_config[0].xmax = joystick_config[0].ymax = 254;
-        joystick_config[0].xmin = joystick_config[0].ymin = 1;
-        joystick_config[0].xcenter = joystick_config[0].ycenter = 128;
-        //joystick_calibrate();
+        //joystick_config[0].xmax = joystick_config[0].ymax = 254;
+        //joystick_config[0].xmin = joystick_config[0].ymin = 1;
+        //joystick_config[0].xcenter = joystick_config[0].ycenter = 128;
+        joystick_calibrate();
     } else {
         mouse_init();
     }
