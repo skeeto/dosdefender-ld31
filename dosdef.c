@@ -214,6 +214,18 @@ static void print_game_over()
     vga_print((struct point){133, 97}, WHITE, "GAME OVER");
 }
 
+static void print_exit_help()
+{
+    vga_print((struct point){76, 150}, LIGHT_GRAY,
+              "PRESS ANY KEY TO EXIT TO DOS");
+}
+
+static void print_title(bool clear)
+{
+    vga_print((struct point){124, 50}, clear ? BACKGROUND : LIGHT_BLUE,
+              "DOS DEFENDER");
+}
+
 static void ship_check_bounds(int i)
 {
     int32_t xlim = VGA_PWIDTH * SCALE;
@@ -389,10 +401,18 @@ int _main(void)
             }
         }
 
+        if (ticks < 120) {
+            print_title(false);
+        } else if (ticks == 120) {
+            print_title(true);
+        }
+
         if (ships[0].hp == 0) {
             if (!ending_played) {
                 speaker_play(&speaker, &fx_end_music);
                 ending_played = true;
+            } else if (!speaker.sample) {
+                print_exit_help();
             }
             print_game_over();
             if (kbhit())
