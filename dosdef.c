@@ -25,6 +25,7 @@ struct ship {
     int32_t x, y, dx, dy;
     tick_t last_fire;
     ai_t ai;
+    struct sample *fx_fire;
     uint16_t score;
     uint8_t radius;
     uint8_t fire_delay;
@@ -122,6 +123,7 @@ static int ship_fire(int i)
     bullets[choice].color = ships[i].color_b;
     bullets[choice].birthtick = ticks;
     bullets[choice].alive = true;
+    speaker_play(&speaker, ships[i].fx_fire);
     return choice;
 }
 
@@ -257,8 +259,7 @@ static void ai_player(int i)
         ships[i].dx += ((joy.x - joystick_config[0].xcenter) * 100) / xrange;
         ships[i].dy += ((joy.y - joystick_config[0].xcenter) * 100) / yrange;
         if (joy.a)
-            if (ship_fire(i) >= 0)
-                speaker_play(&speaker, &fx_fire0);
+            ship_fire(i);
     }
 }
 
@@ -282,10 +283,8 @@ static void ai_dummy(int i)
     }
     ships[i].dx = (tx - ships[i].x) / 200;
     ships[i].dy = (ty - ships[i].y) / 200;
-    if (randn(250) == 0) {
-        if (ship_fire(i) >= 0)
-            speaker_play(&speaker, &fx_fire1);
-    }
+    if (randn(250) == 0)
+        ship_fire(i);
 }
 
 static void ai_seeker(int i)
@@ -295,8 +294,7 @@ static void ai_seeker(int i)
     int dy = ships[0].y - ships[i].y;
     ships[i].dx = dx / 250 + randn(noise) - noise / 2;
     ships[i].dy = dy / 250 + randn(noise) - noise / 2;
-    if (ship_fire(i) >= 0)
-        speaker_play(&speaker, &fx_fire1);
+    ship_fire(i);
 }
 
 int _main(void)
@@ -330,7 +328,8 @@ int _main(void)
         .fire_delay = 10,
         .hp = 10,
         .hp_max = 10,
-        .ai = ai_player
+        .ai = ai_player,
+        .fx_fire = &fx_fire0
     };
 
     /* Initialize Sound */
@@ -359,6 +358,7 @@ int _main(void)
                     ships[id].hp_max = 1;
                     ships[id].score = 100;
                     ships[id].ai = ai_seeker;
+                    ships[id].fx_fire = &fx_fire1;
                     break;
                 case 6:
                 case 7:
@@ -371,6 +371,7 @@ int _main(void)
                     ships[id].hp_max = 2;
                     ships[id].score = 125;
                     ships[id].ai = ai_dummy;
+                    ships[id].fx_fire = &fx_fire1;
                     break;
                 case 9:
                     ships[id].color_a = RED;
@@ -381,6 +382,7 @@ int _main(void)
                     ships[id].hp_max = 2;
                     ships[id].score = 250;
                     ships[id].ai = ai_seeker;
+                    ships[id].fx_fire = &fx_fire2;
                     break;
                 }
             }
