@@ -6,7 +6,7 @@ platform is actually [DOSBox][db], though it should work to some
 extent on any DOS system. The game *can* be played with a mouse but
 it's **intended to be played with a joystick/gamepad**.
 
-![](http://i.imgur.com/pXbMUWL.gif)
+![](http://i.imgur.com/B58ogsG.gif)
 
 ![](http://i.imgur.com/YQ82yLk.png)
 ![](http://i.imgur.com/IWJvurZ.png)
