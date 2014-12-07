@@ -9,6 +9,14 @@ it's **intended to be played with a joystick/gamepad**.
 ![](http://i.imgur.com/YQ82yLk.png)
 ![](http://i.imgur.com/IWJvurZ.png)
 
+## Playing
+
+Just point DOSBox at the COM binary.
+
+    $ dosbox DOSDEF.COM
+
+There are no external assets, so mounting isn't necessary.
+
 ## Building
 
 All you need is a GCC compiler that can target i386. It doesn't matter
