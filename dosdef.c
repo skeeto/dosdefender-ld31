@@ -543,16 +543,42 @@ static bool ship_exists(uint8_t color)
     return false;
 }
 
+static int ui_nplayers(void)
+{
+    int nplayers = 1;
+    vga_clear(BACKGROUND);
+    print_title(false);
+    struct joystick joystick;
+    do {
+        msleep(50);
+        vga_vsync();
+        vga_print((struct point){130, 90},  nplayers == 1 ? WHITE : DARK_GRAY,
+                  "ONE PLAYER");
+        vga_print((struct point){127, 103}, nplayers == 2 ? WHITE : DARK_GRAY,
+                  "TWO PLAYERS");
+        joystick_read(&joystick);
+        int scaled = (joystick.axis[1] - joystick_config.min[1]) * 100
+            / (joystick_config.max[1] - joystick_config.min[1]);
+        if (scaled > 75)
+            nplayers = 2;
+        else if (scaled < 25)
+            nplayers = 1;
+    } while (!joystick.button[0]);
+    do
+        joystick_read(&joystick);
+    while (joystick.button[0]);
+    return nplayers;
+}
+
 int dosmain(void)
 {
     if (!joystick_detected()) {
         print("A joystick is required to play DOS Defender!$");
         return 1;
     }
-    int nplayers = 1;
-
     vga_on();
     joystick_calibrate();
+    int nplayers = ui_nplayers();
 
     /* Main Loop */
     clear(nplayers);
