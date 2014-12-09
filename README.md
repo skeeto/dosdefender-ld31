@@ -21,12 +21,16 @@ There are no external assets, so mounting isn't necessary.
 
 ## Building
 
-All you need is a GCC compiler that can target i386. It doesn't matter
-if it's for Linux, Windows, etc., nor is there a need for something
-like DJGPP. The compiled code will be ripped out and re-packaged as a
-COM file. The final game is a 10kB executable. To run, all it needs is
-64kB of RAM and 64kB of video memory. With some tweaking, it could
-even run without a need for any OS.
+All you need is a GCC compiler that can target i386. In theory, it
+doesn't matter if it's for Linux, Windows, etc., nor is there a need
+for something like DJGPP. The compiled code will be packaged as a COM
+file using a linker script (e.g. `--oformat=binary`). Unfortunately,
+there's a long-standing bug in MinGW that prevents this from working
+correctly without `objdump`.
+
+The final game is a 10kB executable. To run, all it needs is 64kB of
+RAM and 64kB of video memory. With some tweaking, it could even run
+without a need for any OS.
 
 DOS Defender is written in GCC's dialect of C and probably can't be
 built with any other compiler. The host platform is treated like an
