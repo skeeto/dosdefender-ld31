@@ -29,7 +29,6 @@ struct ship {
     tick_t last_fire;
     ai_t ai;
     struct sample *fx_fire;
-    int target;
     uint16_t score;
     uint16_t hp, hp_max;
     uint8_t radius;
@@ -38,6 +37,12 @@ struct ship {
     uint8_t drop_rate;
     uint8_t color_a, color_b;
     bool is_player;
+    union {
+        int target_ship;
+        struct {
+            uint32_t x, y;
+        } target_position;
+    };
 };
 
 struct bullet {
@@ -456,22 +461,17 @@ static void ai_player(int i)
 
 static void ai_dummy(int i)
 {
-    int den = 10;
-    tick_t t = (ticks + i * 200 + i * 20) % 1000;
-    int tx, ty;
-    if (t < 250) {
-        tx = VGA_PWIDTH  * SCALE * 1 / den;
-        ty = VGA_PHEIGHT * SCALE * 1 / den;
-    } else if (t < 500) {
-        tx = VGA_PWIDTH  * SCALE * 1 / den;
-        ty = VGA_PHEIGHT * SCALE * (den - 1) / den;
-    } else if (t < 750) {
-        tx = VGA_PWIDTH  * SCALE * (den - 1) / den;
-        ty = VGA_PHEIGHT * SCALE * (den - 1) / den;
-    } else {
-        tx = VGA_PWIDTH  * SCALE * (den - 1) / den;
-        ty = VGA_PHEIGHT * SCALE * 1 / den;
+    int dist = SCALE * 25;
+    bool no_target = ships[i].target_position.x == 0 ||
+                     ships[i].target_position.y == 0;
+    bool near_target = abs(ships[i].x - ships[i].target_position.x) < dist &&
+                       abs(ships[i].y - ships[i].target_position.y) < dist;
+    if (no_target || near_target) {
+        ships[i].target_position.x = randn(VGA_PWIDTH * SCALE);
+        ships[i].target_position.y = randn(VGA_PHEIGHT * SCALE);
     }
+    int32_t tx = ships[i].target_position.x;
+    int32_t ty = ships[i].target_position.y;
     ships[i].dx = (tx - ships[i].x) / 200;
     ships[i].dy = (ty - ships[i].y) / 200;
     if (randn(250) == 0)
@@ -481,11 +481,14 @@ static void ai_dummy(int i)
 static void ai_seeker(int i)
 {
     int noise = 400;
-    int target = ships[i].target;
+    int target = ships[i].target_ship;
     if (ships[target].hp == 0 || !ships[target].is_player) {
-        ships[i].target = (target + 1) % ships_max;
-        if (is_game_over())
+        ships[i].target_ship = (target + 1) % ships_max;
+        if (is_game_over()) {
             ships[i].ai = ai_dummy;
+            ships[i].target_position.x = 0;
+            ships[i].target_position.y = 0;
+        }
     }
     int dx = ships[target].x - ships[i].x;
     int dy = ships[target].y - ships[i].y;
@@ -570,7 +573,7 @@ int _main(void)
                     ships[id].hp_max = 10;
                     ships[id].score = 100;
                     ships[id].ai = ai_seeker;
-                    ships[id].target = randn(nplayers);
+                    ships[id].target_ship = randn(nplayers);
                     ships[id].fx_fire = &fx_fire1;
                 } else if (select < 92) {
                     ships[id].color_a = GREEN;
@@ -595,7 +598,7 @@ int _main(void)
                     ships[id].hp_max = 1;
                     ships[id].score = 500;
                     ships[id].ai = ai_seeker;
-                    ships[id].target = randn(nplayers);
+                    ships[id].target_ship = randn(nplayers);
                     ships[id].fx_fire = &fx_fire1;
                 } else if (select < 96) {
                     ships[id].color_a = RED;
@@ -608,7 +611,7 @@ int _main(void)
                     ships[id].hp_max = 50;
                     ships[id].score = 250;
                     ships[id].ai = ai_seeker;
-                    ships[id].target = randn(nplayers);
+                    ships[id].target_ship = randn(nplayers);
                     ships[id].fx_fire = &fx_fire2;
                 } else if (select < 110) {
                     ships[id].color_a = LIGHT_MAGENTA;
@@ -621,7 +624,7 @@ int _main(void)
                     ships[id].hp_max = 100;
                     ships[id].score = 1000;
                     ships[id].ai = ai_seeker;
-                    ships[id].target = randn(nplayers);
+                    ships[id].target_ship = randn(nplayers);
                     ships[id].fx_fire = &fx_fire3;
                 } else if (!ship_exists(LIGHT_GREEN)) {
                     ships[id].color_a = LIGHT_GREEN;
@@ -634,7 +637,7 @@ int _main(void)
                     ships[id].hp_max = 1000;
                     ships[id].score = 10000;
                     ships[id].ai = ai_seeker;
-                    ships[id].target = randn(nplayers);
+                    ships[id].target_ship = randn(nplayers);
                     ships[id].fx_fire = &fx_fire3;
                     speaker_play(&speaker, &fx_boss);
                 } else {
