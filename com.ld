@@ -1,4 +1,3 @@
-ENTRY(_main);
 OUTPUT_FORMAT(binary)
 SECTIONS
 {

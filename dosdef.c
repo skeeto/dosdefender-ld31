@@ -543,7 +543,7 @@ static bool ship_exists(uint8_t color)
     return false;
 }
 
-int _main(void)
+int dosmain(void)
 {
     if (!joystick_detected()) {
         print("A joystick is required to play DOS Defender!$");
