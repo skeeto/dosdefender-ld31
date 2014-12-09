@@ -13,10 +13,11 @@
 #define PLAYER             14
 #define BULLET_SPEED       3
 #define PARTICLE_MAX_AGE   50
+#define MAX_PLAYERS        2
 
 typedef unsigned int tick_t;
 typedef void (*ai_t)(int id);
-typedef void (*power_t)(void);
+typedef void (*power_t)(int id);
 
 static tick_t ticks;
 static unsigned score;
@@ -28,6 +29,7 @@ struct ship {
     tick_t last_fire;
     ai_t ai;
     struct sample *fx_fire;
+    int target;
     uint16_t score;
     uint16_t hp, hp_max;
     uint8_t radius;
@@ -35,6 +37,7 @@ struct ship {
     uint8_t fire_damage;
     uint8_t drop_rate;
     uint8_t color_a, color_b;
+    bool is_player;
 };
 
 struct bullet {
@@ -96,6 +99,15 @@ static bool bullet_in_ship(int bi, int si)
            bullets[bi].y <= ships[si].y + (SCALE * ships[si].radius);
 }
 
+static bool is_game_over()
+{
+    for (int i = 0; i < MAX_PLAYERS; i++) {
+        if (ships[i].is_player && ships[i].hp > 0)
+            return false;
+    }
+    return true;
+}
+
 static void bullet_step(int i)
 {
     bullets[i].x += bullets[i].dx;
@@ -115,12 +127,12 @@ static void bullet_step(int i)
                     for (int j = 0; j < 10; j++)
                         burn(ships[id].x, ships[id].y);
                     ship_draw(id, true);
-                    if (ships[0].hp > 0)
+                    if (!is_game_over())
                         score += ships[id].score;
                     if (id != 0)
                         powerup_random(id);
                     speaker_play(&speaker, &fx_explode);
-                } else if (id == 0) {
+                } else if (ships[id].is_player) {
                     speaker_play(&speaker, &fx_hit);
                 }
                 break;
@@ -216,8 +228,8 @@ static void ship_draw(int id, bool clear)
         vga_pixel(vb, clear ? BACKGROUND : ships[id].color_a);
     }
     struct point d = {c.x + ships[id].dx / 10, c.y + ships[id].dy / 10};
-    if (id == 0)
-        vga_pixel(d, clear ? BACKGROUND : WHITE);
+    if (ships[id].is_player)
+        vga_pixel(d, clear ? BACKGROUND : ships[id].color_a);
 }
 
 static void ship_step(int i)
@@ -255,16 +267,20 @@ static void powerup_step(int i)
 {
     int px = powerups[i].x / SCALE;
     int py = powerups[i].y / SCALE;
-    int sx = ships[0].x / SCALE;
-    int sy = ships[0].y / SCALE;
-    if (ships[0].hp > 0 &&
-        px >= sx - 4 &&
-        py >= sy - 4 &&
-        px <= sx + 4 &&
-        py <= sy + 4) {
-        powerups[i].power();
-        powerups[i].alive = false;
-        speaker_play(&speaker, &fx_powerup);
+    for (int i = 0; i < MAX_PLAYERS; i++) {
+        if (!ships[i].is_player)
+            break;
+        int sx = ships[i].x / SCALE;
+        int sy = ships[i].y / SCALE;
+        if (ships[i].hp > 0 &&
+            px >= sx - 4 &&
+            py >= sy - 4 &&
+            px <= sx + 4 &&
+            py <= sy + 4) {
+            powerups[i].power(i);
+            powerups[i].alive = false;
+            speaker_play(&speaker, &fx_powerup);
+        }
     }
 }
 
@@ -286,40 +302,40 @@ static int powerup_drop(int32_t x, int32_t y)
     return choice;
 }
 
-static void power_heal(void)
+static void power_heal(int id)
 {
-    ships[0].hp = min(ships[0].hp + randn(25) + 25, ships[0].hp_max);
+    ships[id].hp = min(ships[id].hp + randn(25) + 25, ships[id].hp_max);
 }
 
-static void power_fire_delay_down(void)
+static void power_fire_delay_down(int id)
 {
-    ships[0].fire_delay = max(8, ships[0].fire_delay * 3 / 4);
+    ships[id].fire_delay = max(8, ships[id].fire_delay * 3 / 4);
 }
 
-static void power_fire_damage_up(void)
+static void power_fire_damage_up(int id)
 {
-    ships[0].fire_damage = ships[0].fire_damage * 10 / 9;
+    ships[id].fire_damage = ships[id].fire_damage * 10 / 9;
 }
 
-static void power_teleport(void)
+static void power_teleport(int id)
 {
-    ship_draw(0, true);
-    ships[0].x = (randn(VGA_PWIDTH - 40) + 20) * SCALE;
-    ships[0].y = (randn(VGA_PHEIGHT - 40) + 20) * SCALE;
-    ships[0].dx = 0;
-    ships[0].dy = 0;
+    ship_draw(id, true);
+    ships[id].x = (randn(VGA_PWIDTH - 40) + 20) * SCALE;
+    ships[id].y = (randn(VGA_PHEIGHT - 40) + 20) * SCALE;
+    ships[id].dx = 0;
+    ships[id].dy = 0;
 }
 
-static void power_radius_up(void)
+static void power_radius_up(int id)
 {
-    ship_draw(0, true);
-    ships[0].radius = min(5, ships[0].radius + 1);
+    ship_draw(id, true);
+    ships[id].radius = min(5, ships[id].radius + 1);
 }
 
-static void power_radius_down(void)
+static void power_radius_down(int id)
 {
-    ship_draw(0, true);
-    ships[0].radius = max(1, ships[0].radius - 1);
+    ship_draw(id, true);
+    ships[id].radius = max(1, ships[id].radius - 1);
 }
 
 static void powerup_random(int id)
@@ -386,12 +402,13 @@ int spawn(int hp)
 {
     int choice = -1;
     for (int i = 1; i < ships_max; i++) {
-        if (!ships[i].hp > 0) {
+        if (!ships[i].is_player && !ships[i].hp > 0) {
             choice = i;
             break;
         }
     }
     if (choice > -1) {
+        ships[choice].is_player = false;
         ships[choice].hp = hp;
         ships[choice].dx = ships[choice].dy = 0;
         if (randn(2)) {
@@ -413,10 +430,12 @@ static void ai_player(int i)
         int xrange = 2 * (c->max[0] - c->min[0]);
         int yrange = 2 * (c->max[1] - c->min[1]);
         joystick_read(&joy);
-        ships[i].dx += ((joy.axis[0] - c->center[0]) * 100) / xrange;
-        ships[i].dy += ((joy.axis[1] - c->center[1]) * 100) / yrange;
-        rand_seed ^= joy.axis[0] - joy.axis[1]; // mix into random state
-        if (joy.button[0])
+        int o = i * 2;
+        ships[i].dx += ((joy.axis[o + 0] - c->center[o + 0]) * 100) / xrange;
+        ships[i].dy += ((joy.axis[o + 1] - c->center[o + 1]) * 100) / yrange;
+        /* mix input into random state */
+        rand_seed ^= joy.axis[o + 0] - joy.axis[o + 1];
+        if (joy.button[o + 0])
             ship_fire(i);
     }
 }
@@ -448,8 +467,9 @@ static void ai_dummy(int i)
 static void ai_seeker(int i)
 {
     int noise = 400;
-    int dx = ships[0].x - ships[i].x;
-    int dy = ships[0].y - ships[i].y;
+    int target = ships[i].target;
+    int dx = ships[target].x - ships[i].x;
+    int dy = ships[target].y - ships[i].y;
     ships[i].dx = dx / 250 + randn(noise) - noise / 2;
     ships[i].dy = dy / 250 + randn(noise) - noise / 2;
     ship_fire(i);
@@ -457,7 +477,7 @@ static void ai_seeker(int i)
 
 static bool ending_played = false;
 
-static void clear()
+static void clear(int nplayers)
 {
     free();
     bullets = sbrk(bullets_max * sizeof(bullets[0]));
@@ -466,19 +486,22 @@ static void clear()
     powerups = sbrk(powerups_max * sizeof(powerups[0]));
 
     rand_seed += get_tick();
-    ships[0] = (struct ship) {
-        .x = VGA_PWIDTH / 2 * SCALE,
-        .y = VGA_PHEIGHT / 2 * SCALE,
-        .color_a = YELLOW,
-        .color_b = LIGHT_BLUE,
-        .radius = 2,
-        .fire_delay = 25,
-        .fire_damage = 10,
-        .hp = 100,
-        .hp_max = 100,
-        .ai = ai_player,
-        .fx_fire = &fx_fire0
-    };
+    for (int i = 0; i < nplayers; i++) {
+        ships[i] = (struct ship) {
+            .x = VGA_PWIDTH / 2 * SCALE,
+            .y = VGA_PHEIGHT / 2 * SCALE,
+            .color_a = YELLOW + i,
+            .color_b = LIGHT_BLUE,
+            .radius = 2,
+            .fire_delay = 25,
+            .fire_damage = 10,
+            .hp = 100,
+            .hp_max = 100,
+            .ai = ai_player,
+            .fx_fire = &fx_fire0,
+            .is_player = true
+        };
+    }
     ticks = 0;
     if (score > best_score)
         best_score = score;
@@ -491,7 +514,7 @@ static void clear()
 
 static bool ship_exists(uint8_t color)
 {
-    for (int i = 1; i < ships_max; i++)
+    for (int i = 0; i < ships_max; i++)
         if (ships[i].color_a == color)
             return true;
     return false;
@@ -503,12 +526,13 @@ int _main(void)
         print("A joystick is required to play DOS Defender!$");
         return 1;
     }
+    int nplayers = 2;
 
     vga_on();
     joystick_calibrate();
 
     /* Main Loop */
-    clear();
+    clear(nplayers);
     for (;;) {
         speaker_step(&speaker);
         if (randn(50) == 0) {
@@ -526,6 +550,7 @@ int _main(void)
                     ships[id].hp_max = 10;
                     ships[id].score = 100;
                     ships[id].ai = ai_seeker;
+                    ships[id].target = randn(nplayers);
                     ships[id].fx_fire = &fx_fire1;
                 } else if (select < 92) {
                     ships[id].color_a = GREEN;
@@ -550,6 +575,7 @@ int _main(void)
                     ships[id].hp_max = 1;
                     ships[id].score = 500;
                     ships[id].ai = ai_seeker;
+                    ships[id].target = randn(nplayers);
                     ships[id].fx_fire = &fx_fire1;
                 } else if (select < 96) {
                     ships[id].color_a = RED;
@@ -562,6 +588,7 @@ int _main(void)
                     ships[id].hp_max = 50;
                     ships[id].score = 250;
                     ships[id].ai = ai_seeker;
+                    ships[id].target = randn(nplayers);
                     ships[id].fx_fire = &fx_fire2;
                 } else if (select < 110) {
                     ships[id].color_a = LIGHT_MAGENTA;
@@ -574,6 +601,7 @@ int _main(void)
                     ships[id].hp_max = 100;
                     ships[id].score = 1000;
                     ships[id].ai = ai_seeker;
+                    ships[id].target = randn(nplayers);
                     ships[id].fx_fire = &fx_fire3;
                 } else if (!ship_exists(LIGHT_GREEN)) {
                     ships[id].color_a = LIGHT_GREEN;
@@ -586,6 +614,7 @@ int _main(void)
                     ships[id].hp_max = 1000;
                     ships[id].score = 10000;
                     ships[id].ai = ai_seeker;
+                    ships[id].target = randn(nplayers);
                     ships[id].fx_fire = &fx_fire3;
                     speaker_play(&speaker, &fx_boss);
                 } else {
@@ -600,7 +629,7 @@ int _main(void)
             print_title(true);
         }
 
-        if (ships[0].hp == 0) {
+        if (is_game_over()) {
             struct joystick joystick;
             joystick_read(&joystick);
             if (!ending_played) {
@@ -609,7 +638,7 @@ int _main(void)
             } else if (!speaker.sample) {
                 print_exit_help();
                 if (joystick.button[0]) {
-                    clear();
+                    clear(nplayers);
                     continue;
                 }
             }
@@ -617,7 +646,7 @@ int _main(void)
             if (kbhit())
                 break;
             if (joystick.button[1]) { // restart early
-                clear();
+                clear(nplayers);
                 continue;
             }
         }
@@ -638,7 +667,7 @@ int _main(void)
             }
         }
         for (int i = 0; i < ships_max; i++) {
-            if (ships[i].hp > 0 || i == 0) {
+            if (ships[i].hp > 0 || ships[i].is_player) {
                 ship_draw(i, true);
                 ship_step(i);
                 ships[i].ai(i);
@@ -646,7 +675,8 @@ int _main(void)
                     ship_draw(i, false);
             }
         }
-        ship_check_bounds(0);
+        for (int i = 0; i < nplayers; i++)
+            ship_check_bounds(i);
         for (int i = 0; i < bullets_max; i++) {
             bullet_draw(i, true);
             if (bullets[i].alive) {
