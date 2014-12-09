@@ -1,36 +1,17 @@
 ENTRY(_main);
-EXTERN(_heap);
+OUTPUT_FORMAT(binary)
 SECTIONS
 {
     . = 0x0100;
-    .text : AT(0x0100)
+    .text :
     {
-        _text = .;
         *(.text);
-        _text_end = .;
     }
     .data :
     {
-        _data = .;
-        *(.bss);
-        *(.bss*);
         *(.data);
-        *(.rodata*);
-        *(COMMON)
-        _data_end = .;
+        *(.bss);
+        *(.rodata);
     }
-    . = ALIGN(4);
-    .heap :
-    {
-       _heap = .;
-    }
-    /DISCARD/ :
-    {
-        *(.sig*);
-        *(.note*);
-        *(.iplt*);
-        *(.igot*);
-        *(.rel*);
-        *(.comment);
-    }
+    _heap = ALIGN(4);
 }
