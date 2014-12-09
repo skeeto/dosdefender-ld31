@@ -306,6 +306,18 @@ static void power_heal(int id)
     ships[id].hp = min(ships[id].hp + randn(25) + 25, ships[id].hp_max);
 }
 
+static void power_resurrect(int id)
+{
+    ;
+    for (int friend = 0; friend < MAX_PLAYERS; friend++) {
+        if (ships[friend].is_player && ships[friend].hp == 0) {
+            ships[friend].x = ships[id].x;
+            ships[friend].y = ships[id].y;
+            ships[friend].hp = ships[friend].hp_max / 2;
+        }
+    }
+}
+
 static void power_fire_delay_down(int id)
 {
     ships[id].fire_delay = max(8, ships[id].fire_delay * 3 / 4);
@@ -343,7 +355,10 @@ static void powerup_random(int id)
         int p = powerup_drop(ships[id].x, ships[id].y);
         if (p >= 0) {
             int select = randn(100);
-            if (select < 50) {
+            if (select < 5 && ships[1].is_player) {
+                powerups[p].power = power_resurrect;
+                powerups[p].color = 43;
+            } else if (select < 50) {
                 powerups[p].power = power_heal;
                 powerups[p].color = LIGHT_GREEN;
             } else if (select < 75) {
