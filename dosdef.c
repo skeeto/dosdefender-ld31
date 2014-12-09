@@ -550,8 +550,8 @@ static int ui_nplayers(void)
     print_title(false);
     struct joystick joystick;
     do {
-        msleep(50);
         vga_vsync();
+        speaker_step(&speaker);
         vga_print((struct point){130, 90},  nplayers == 1 ? WHITE : DARK_GRAY,
                   "ONE PLAYER");
         vga_print((struct point){127, 103}, nplayers == 2 ? WHITE : DARK_GRAY,
@@ -559,14 +559,22 @@ static int ui_nplayers(void)
         joystick_read(&joystick);
         int scaled = (joystick.axis[1] - joystick_config.min[1]) * 100
             / (joystick_config.max[1] - joystick_config.min[1]);
-        if (scaled > 75)
+        if (scaled > 75) {
+            if (nplayers != 2)
+                speaker_play(&speaker, &fx_menu_toggle);
             nplayers = 2;
-        else if (scaled < 25)
+        } else if (scaled < 25) {
+            if (nplayers != 1)
+                speaker_play(&speaker, &fx_menu_toggle);
             nplayers = 1;
+        }
     } while (!joystick.button[0]);
-    do
+    speaker_play(&speaker, &fx_menu_select);
+    do {
         joystick_read(&joystick);
-    while (joystick.button[0]);
+        speaker_step(&speaker);
+        vga_vsync();
+    } while (joystick.button[0] || speaker.sample != 0);
     return nplayers;
 }
 

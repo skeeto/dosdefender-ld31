@@ -14,6 +14,27 @@ struct sample {
     struct note notes[];
 };
 
+struct sample fx_menu_toggle = {
+    .priority = 50,
+    .length = 3,
+    {
+        {600, 2},
+        {1000, 1},
+        {700, 2}
+    }
+};
+
+struct sample fx_menu_select = {
+    .priority = 55,
+    .length = 4,
+    {
+        {800, 2},
+        {900, 3},
+        {1000, 4},
+        {0, 10}
+    }
+};
+
 struct sample fx_intro_music = {
     .priority = 100,
     .length = 11,
