@@ -2,52 +2,44 @@
 #include "int.h"
 
 struct joystick {
-    uint16_t x, y;
-    bool a, b;
+    uint16_t axis[4];
+    bool button[4];
 };
 
 struct joystick_config {
-    uint16_t xmin, xmax;
-    uint16_t ymin, ymax;
-    uint16_t xcenter, ycenter;
+    uint16_t min[4];
+    uint16_t max[4];
+    uint16_t center[4];
 };
 
-static struct joystick_config joystick_config[2] = {
-    {0xffff, 0x0000, 0xffff, 0x0000, 0xffff, 0xffff},
-    {0xffff, 0x0000, 0xffff, 0x0000, 0xffff, 0xffff}
+static struct joystick_config joystick_config = {
+    {0xffff, 0xffff, 0xffff, 0xffff},
+    {0x0000, 0x0000, 0x0000, 0x0000},
+    {0x0000, 0x0000, 0x0000, 0x0000},
 };
 
-static void joystick_read2(struct joystick *a, struct joystick *b)
+static void joystick_read(struct joystick *joystick)
 {
     asm volatile ("mov  $0x84, %%ah\n"
                   "mov  $1, %%dx\n"
                   "int  $0x15\n"
-                  : "=a"(a->x), "=b"(a->y), "=c"(b->x), "=d"(b->y));
-    joystick_config[0].xmin = min(joystick_config[0].xmin, a->x);
-    joystick_config[0].xmax = max(joystick_config[0].xmax, a->x);
-    joystick_config[0].ymin = min(joystick_config[0].ymin, a->y);
-    joystick_config[0].ymax = max(joystick_config[0].ymax, a->y);
-    joystick_config[1].xmin = min(joystick_config[1].xmin, b->x);
-    joystick_config[1].xmax = max(joystick_config[1].xmax, b->x);
-    joystick_config[1].ymin = min(joystick_config[1].ymin, b->y);
-    joystick_config[1].ymax = max(joystick_config[1].ymax, b->y);
+                  : "=a"(joystick->axis[0]), "=b"(joystick->axis[1]),
+                    "=c"(joystick->axis[2]), "=d"(joystick->axis[3]));
+    for (int i = 0; i < 4; i++) {
+        joystick_config.min[i] =
+            min(joystick_config.min[i], joystick->axis[i]);
+        joystick_config.max[i] =
+            max(joystick_config.max[i], joystick->axis[i]);
+    }
     uint16_t buttons = 0;
     asm volatile ("mov  $0x84, %%ah\n"
                   "mov  $0, %%dx\n"
                   "int  $0x15\n"
                   : "=a"(buttons)
                   : /**/
-                  : "bx", "cx", "dx", "flags");
-    a->a = !(buttons & (1 << 4));
-    a->b = !(buttons & (1 << 5));
-    b->a = !(buttons & (1 << 6));
-    b->b = !(buttons & (1 << 7));
-}
-
-static void joystick_read(struct joystick *joystick)
-{
-    struct joystick dummy;
-    joystick_read2(joystick, &dummy);
+                  : "bx", "cx", "dx");
+    for (int i = 0; i < 4; i++)
+        joystick->button[i] = !(buttons & (1 << (i + 4)));
 }
 
 #include "vga.h"
@@ -64,28 +56,33 @@ static void joystick_crosshair(struct point c, uint8_t color)
 static void joystick_calibrate()
 {
     vga_clear(BLUE);
-    struct point cursor = {0, 0};
-    struct joystick joy;
+    int32_t scaled[4] = {};
+    struct joystick joy = {};
     do {
-        joystick_read(&joy);
-        int xmin = joystick_config[0].xmin;
-        int xmax = joystick_config[0].xmax;
-        int ymin = joystick_config[0].ymin;
-        int ymax = joystick_config[0].ymax;
         vga_vsync();
-        joystick_crosshair(cursor, BLUE);
-        cursor.x = ((joy.x - xmin) * VGA_PWIDTH) / xmax;
-        cursor.y = ((joy.y - ymin) * VGA_PHEIGHT) / ymax;
-        joystick_crosshair(cursor, WHITE);
+        joystick_crosshair((struct point){scaled[0], scaled[1]}, BLUE);
+        joystick_crosshair((struct point){scaled[2], scaled[3]}, BLUE);
+        joystick_read(&joy);
+        for (int i = 0; i < 4; i++) {
+            int32_t scale = joystick_config.max[i] - joystick_config.min[i];
+            if (scale != 0) {
+                scaled[i] = joy.axis[i] - joystick_config.min[i];
+                scaled[i] *= (i & 0x01) ? VGA_PHEIGHT : VGA_PWIDTH;
+                scaled[i] /= scale;
+            }
+        }
+        joystick_crosshair((struct point){scaled[0], scaled[1]}, WHITE);
+        joystick_crosshair((struct point){scaled[2], scaled[3]}, YELLOW);
         vga_print((struct point){55, 80}, YELLOW,
                   "MOVE JOYSTICK AROUND ITS FULL RANGE");
         vga_print((struct point){43, 113}, YELLOW,
                   "THEN CENTER JOYSTICK AND PRESS BUTTON A");
         vga_pixel((struct point){VGA_PWIDTH / 2, VGA_PHEIGHT / 2}, BLACK);
-    } while (!joy.a);
-    joystick_config[0].xcenter = joy.x;
-    joystick_config[0].ycenter = joy.y;
+    } while (!joy.button[0]);
+    for (int i = 0; i < 4; i++)
+        joystick_config.center[i] = joy.axis[i];
+    vga_clear(LIGHT_BLUE);
     do
         joystick_read(&joy);
-    while (joy.a);
+    while (joy.button[0]);
 }

@@ -7,7 +7,6 @@
 #include "alloc.h"
 #include "keyboard.h"
 #include "speaker.h"
-#include "mouse.h"
 
 #define SCALE              1000
 #define BACKGROUND         17
@@ -72,16 +71,11 @@ static size_t ships_max = 12;
 static struct powerup *powerups;
 static size_t powerups_max = 8;
 
-static int joystick_detected_cache = 2;
-
 static bool joystick_detected()
 {
-    if (joystick_detected_cache == 2) {
-        struct joystick joy;
-        joystick_read(&joy);
-        joystick_detected_cache = joy.x != 0 || joy.y != 0;
-    }
-    return joystick_detected_cache;
+    struct joystick joystick;
+    joystick_read(&joystick);
+    return joystick.axis[0] != 0 || joystick.axis[1] != 0;
 }
 
 static void burn(int32_t x, int32_t y);
@@ -414,25 +408,16 @@ int spawn(int hp)
 static void ai_player(int i)
 {
     if (ships[i].hp > 0) {
-        if (joystick_detected()) {
-            struct joystick joy;
-            struct joystick_config c = joystick_config[0];
-            int xrange = 2 * (c.xmax - joystick_config[0].xmin);
-            int yrange = 2 * (c.ymax - c.ymin);
-            joystick_read(&joy);
-            ships[i].dx += ((joy.x - c.xcenter) * 100) / xrange;
-            ships[i].dy += ((joy.y - c.xcenter) * 100) / yrange;
-            rand_seed += joy.x - joy.y; // mix inputs into random state
-            if (joy.a)
-                ship_fire(i);
-        } else {
-            struct mouse mouse = mouse_read();
-            ships[i].dx += (mouse.x * SCALE / 2 - ships[i].x) / (4 * SCALE);
-            ships[i].dy += (mouse.y * SCALE     - ships[i].y) / (4 * SCALE);
-            rand_seed += mouse.x - mouse.y; // mix inputs into random state
-            if (mouse.left)
-                ship_fire(i);
-        }
+        struct joystick joy;
+        struct joystick_config *c = &joystick_config;
+        int xrange = 2 * (c->max[0] - c->min[0]);
+        int yrange = 2 * (c->max[1] - c->min[1]);
+        joystick_read(&joy);
+        ships[i].dx += ((joy.axis[0] - c->center[0]) * 100) / xrange;
+        ships[i].dy += ((joy.axis[1] - c->center[1]) * 100) / yrange;
+        rand_seed ^= joy.axis[0] - joy.axis[1]; // mix into random state
+        if (joy.button[0])
+            ship_fire(i);
     }
 }
 
@@ -514,21 +499,16 @@ static bool ship_exists(uint8_t color)
 
 int _main(void)
 {
-    /* Initialize Interface */
-    vga_on();
-    if (joystick_detected()) {
-        // TODO: hardcoded calibration is temporary
-        //joystick_config[0].xmax = joystick_config[0].ymax = 254;
-        //joystick_config[0].xmin = joystick_config[0].ymin = 1;
-        //joystick_config[0].xcenter = joystick_config[0].ycenter = 128;
-        joystick_calibrate();
-    } else {
-        mouse_init();
+    if (!joystick_detected()) {
+        print("A joystick is required to play DOS Defender!$");
+        return 1;
     }
+
+    vga_on();
+    joystick_calibrate();
 
     /* Main Loop */
     clear();
-    struct mouse mouse = {0};
     for (;;) {
         speaker_step(&speaker);
         if (randn(50) == 0) {
@@ -621,23 +601,14 @@ int _main(void)
         }
 
         if (ships[0].hp == 0) {
-            bool first, second;
-            if (joystick_detected()) {
-                struct joystick joy;
-                joystick_read(&joy);
-                first = joy.a;
-                second = joy.b;
-            } else {
-                struct mouse mouse = mouse_read();
-                first = mouse.left;
-                second = mouse.right;
-            }
+            struct joystick joystick;
+            joystick_read(&joystick);
             if (!ending_played) {
                 speaker_play(&speaker, &fx_end_music);
                 ending_played = true;
             } else if (!speaker.sample) {
                 print_exit_help();
-                if (first) {
+                if (joystick.button[0]) {
                     clear();
                     continue;
                 }
@@ -645,7 +616,7 @@ int _main(void)
             print_game_over();
             if (kbhit())
                 break;
-            if (second) { // restart early
+            if (joystick.button[1]) { // restart early
                 clear();
                 continue;
             }
@@ -683,11 +654,6 @@ int _main(void)
                 if (bullets[i].alive)
                     bullet_draw(i, false);
             }
-        }
-        if (!joystick_detected()) {
-            vga_pixel((struct point){mouse.x / 2, mouse.y}, BACKGROUND);
-            mouse = mouse_read();
-            vga_pixel((struct point){mouse.x / 2, mouse.y}, WHITE);
         }
         vga_vsync();
         ticks++;
