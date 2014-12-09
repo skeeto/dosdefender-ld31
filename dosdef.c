@@ -605,7 +605,7 @@ int _main(void)
                     ships[id].fx_fire = &fx_fire3;
                 } else if (!ship_exists(LIGHT_GREEN)) {
                     ships[id].color_a = LIGHT_GREEN;
-                    ships[id].color_b = YELLOW;
+                    ships[id].color_b = 43;
                     ships[id].radius = 8;
                     ships[id].fire_delay = 20;
                     ships[id].fire_damage = 90;
