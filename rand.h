@@ -15,7 +15,7 @@ static uint32_t rand(void)
 
 static uint32_t randn(uint32_t n)
 {
-    return (rand() >> 7)  % n;
+    return (rand() >> 7) % n;
 }
 
 #endif

@@ -129,8 +129,7 @@ static void bullet_step(int i)
                     ship_draw(id, true);
                     if (!is_game_over())
                         score += ships[id].score;
-                    if (id != 0)
-                        powerup_random(id);
+                    powerup_random(id);
                     speaker_play(&speaker, &fx_explode);
                 } else if (ships[id].is_player) {
                     speaker_play(&speaker, &fx_hit);
@@ -340,7 +339,7 @@ static void power_radius_down(int id)
 
 static void powerup_random(int id)
 {
-    if (randn(ships[id].drop_rate) == 0) {
+    if (ships[id].drop_rate > 0 && randn(ships[id].drop_rate) == 0) {
         int p = powerup_drop(ships[id].x, ships[id].y);
         if (p >= 0) {
             int select = randn(100);
@@ -402,7 +401,7 @@ int spawn(int hp)
 {
     int choice = -1;
     for (int i = 1; i < ships_max; i++) {
-        if (!ships[i].is_player && !ships[i].hp > 0) {
+        if (!ships[i].is_player && ships[i].hp == 0) {
             choice = i;
             break;
         }
@@ -495,6 +494,7 @@ static void clear(int nplayers)
             .radius = 2,
             .fire_delay = 25,
             .fire_damage = 10,
+            .drop_rate = 0,
             .hp = 100,
             .hp_max = 100,
             .ai = ai_player,
