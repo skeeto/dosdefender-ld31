@@ -526,7 +526,7 @@ int _main(void)
         print("A joystick is required to play DOS Defender!$");
         return 1;
     }
-    int nplayers = 2;
+    int nplayers = 1;
 
     vga_on();
     joystick_calibrate();
