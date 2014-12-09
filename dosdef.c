@@ -482,8 +482,11 @@ static void ai_seeker(int i)
 {
     int noise = 400;
     int target = ships[i].target;
-    if (ships[target].hp == 0 || !ships[target].is_player)
+    if (ships[target].hp == 0 || !ships[target].is_player) {
         ships[i].target = (target + 1) % ships_max;
+        if (is_game_over())
+            ships[i].ai = ai_dummy;
+    }
     int dx = ships[target].x - ships[i].x;
     int dy = ships[target].y - ships[i].y;
     ships[i].dx = dx / 250 + randn(noise) - noise / 2;
