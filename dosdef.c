@@ -266,12 +266,12 @@ static void powerup_step(int i)
 {
     int px = powerups[i].x / SCALE;
     int py = powerups[i].y / SCALE;
-    for (int i = 0; i < MAX_PLAYERS; i++) {
-        if (!ships[i].is_player)
+    for (int id = 0; id < MAX_PLAYERS; id++) {
+        if (!ships[id].is_player)
             break;
-        int sx = ships[i].x / SCALE;
-        int sy = ships[i].y / SCALE;
-        if (ships[i].hp > 0 &&
+        int sx = ships[id].x / SCALE;
+        int sy = ships[id].y / SCALE;
+        if (ships[id].hp > 0 &&
             px >= sx - 4 &&
             py >= sy - 4 &&
             px <= sx + 4 &&
