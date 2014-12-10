@@ -57,7 +57,7 @@ static void joystick_calibrate()
 {
     vga_clear(BLUE);
     int32_t scaled[4] = {};
-    struct joystick joy = {};
+    struct joystick joy;
     do {
         vga_vsync();
         joystick_crosshair((struct point){scaled[0], scaled[1]}, BLUE);
