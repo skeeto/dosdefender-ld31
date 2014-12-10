@@ -707,6 +707,8 @@ int dosmain(void)
                 continue;
             }
         }
+
+        vga_vsync();
         for (int i = 0; i < particles_max; i++) {
             particle_draw(i, true);
             if (particles[i].alive) {
@@ -742,7 +744,6 @@ int dosmain(void)
                     bullet_draw(i, false);
             }
         }
-        vga_vsync();
         ticks++;
     }
     if (score > best_score)
