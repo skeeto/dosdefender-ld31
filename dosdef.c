@@ -578,6 +578,95 @@ static int ui_nplayers(void)
     return nplayers;
 }
 
+static void try_spawn()
+{
+    int id = spawn(0);
+    if (id <= 0)
+        return;
+    int select = randn(100) + ticks / 1000;
+    if (select < 65) {
+        ships[id].color_a = BROWN;
+        ships[id].color_b = LIGHT_RED;
+        ships[id].radius = 2;
+        ships[id].fire_delay = 100;
+        ships[id].fire_damage = 10;
+        ships[id].drop_rate = 8;
+        ships[id].hp = 10;
+        ships[id].hp_max = 10;
+        ships[id].score = 100;
+        ships[id].ai = ai_seeker;
+        ships[id].target_ship = randn(MAX_PLAYERS);
+        ships[id].fx_fire = &fx_fire1;
+    } else if (select < 92) {
+        ships[id].color_a = GREEN;
+        ships[id].color_b = LIGHT_RED;
+        ships[id].radius = 2;
+        ships[id].fire_delay = 120;
+        ships[id].fire_damage = 10;
+        ships[id].drop_rate = 5;
+        ships[id].hp = 20;
+        ships[id].hp_max = 20;
+        ships[id].score = 125;
+        ships[id].ai = ai_dummy;
+        ships[id].fx_fire = &fx_fire1;
+    } else if (select < 93) {
+        ships[id].color_a = WHITE;
+        ships[id].color_b = LIGHT_RED;
+        ships[id].radius = 1;
+        ships[id].fire_delay = 20;
+        ships[id].fire_damage = 1;
+        ships[id].drop_rate = 1;
+        ships[id].hp = 1;
+        ships[id].hp_max = 1;
+        ships[id].score = 500;
+        ships[id].ai = ai_seeker;
+        ships[id].target_ship = randn(MAX_PLAYERS);
+        ships[id].fx_fire = &fx_fire1;
+    } else if (select < 96) {
+        ships[id].color_a = RED;
+        ships[id].color_b = LIGHT_GREEN;
+        ships[id].radius = 3;
+        ships[id].fire_delay = 50;
+        ships[id].fire_damage = 25;
+        ships[id].drop_rate = 4;
+        ships[id].hp = 50;
+        ships[id].hp_max = 50;
+        ships[id].score = 250;
+        ships[id].ai = ai_seeker;
+        ships[id].target_ship = randn(MAX_PLAYERS);
+        ships[id].fx_fire = &fx_fire2;
+    } else if (select < 110) {
+        ships[id].color_a = LIGHT_MAGENTA;
+        ships[id].color_b = LIGHT_CYAN;
+        ships[id].radius = 5;
+        ships[id].fire_delay = 120;
+        ships[id].fire_damage = 50;
+        ships[id].drop_rate = 3;
+        ships[id].hp = 100;
+        ships[id].hp_max = 100;
+        ships[id].score = 1000;
+        ships[id].ai = ai_seeker;
+        ships[id].target_ship = randn(MAX_PLAYERS);
+        ships[id].fx_fire = &fx_fire3;
+    } else if (!ship_exists(LIGHT_GREEN)) {
+        ships[id].color_a = LIGHT_GREEN;
+        ships[id].color_b = 43;
+        ships[id].radius = 8;
+        ships[id].fire_delay = 20;
+        ships[id].fire_damage = 90;
+        ships[id].drop_rate = 4;
+        ships[id].hp = 1000;
+        ships[id].hp_max = 1000;
+        ships[id].score = 10000;
+        ships[id].ai = ai_seeker;
+        ships[id].target_ship = randn(MAX_PLAYERS);
+        ships[id].fx_fire = &fx_fire3;
+        speaker_play(&speaker, &fx_boss);
+    } else {
+        ships[id].hp = 0;
+    }
+}
+
 int dosmain(void)
 {
     if (!joystick_detected()) {
@@ -592,99 +681,12 @@ int dosmain(void)
     clear(nplayers);
     for (;;) {
         speaker_step(&speaker);
-        if (randn(50) == 0) {
-            int id = spawn(1);
-            if (id > 0) {
-                int select = randn(100) + ticks / 1000;
-                if (select < 65) {
-                    ships[id].color_a = BROWN;
-                    ships[id].color_b = LIGHT_RED;
-                    ships[id].radius = 2;
-                    ships[id].fire_delay = 100;
-                    ships[id].fire_damage = 10;
-                    ships[id].drop_rate = 8;
-                    ships[id].hp = 10;
-                    ships[id].hp_max = 10;
-                    ships[id].score = 100;
-                    ships[id].ai = ai_seeker;
-                    ships[id].target_ship = randn(nplayers);
-                    ships[id].fx_fire = &fx_fire1;
-                } else if (select < 92) {
-                    ships[id].color_a = GREEN;
-                    ships[id].color_b = LIGHT_RED;
-                    ships[id].radius = 2;
-                    ships[id].fire_delay = 120;
-                    ships[id].fire_damage = 10;
-                    ships[id].drop_rate = 5;
-                    ships[id].hp = 20;
-                    ships[id].hp_max = 20;
-                    ships[id].score = 125;
-                    ships[id].ai = ai_dummy;
-                    ships[id].fx_fire = &fx_fire1;
-                } else if (select < 93) {
-                    ships[id].color_a = WHITE;
-                    ships[id].color_b = LIGHT_RED;
-                    ships[id].radius = 1;
-                    ships[id].fire_delay = 20;
-                    ships[id].fire_damage = 1;
-                    ships[id].drop_rate = 1;
-                    ships[id].hp = 1;
-                    ships[id].hp_max = 1;
-                    ships[id].score = 500;
-                    ships[id].ai = ai_seeker;
-                    ships[id].target_ship = randn(nplayers);
-                    ships[id].fx_fire = &fx_fire1;
-                } else if (select < 96) {
-                    ships[id].color_a = RED;
-                    ships[id].color_b = LIGHT_GREEN;
-                    ships[id].radius = 3;
-                    ships[id].fire_delay = 50;
-                    ships[id].fire_damage = 25;
-                    ships[id].drop_rate = 4;
-                    ships[id].hp = 50;
-                    ships[id].hp_max = 50;
-                    ships[id].score = 250;
-                    ships[id].ai = ai_seeker;
-                    ships[id].target_ship = randn(nplayers);
-                    ships[id].fx_fire = &fx_fire2;
-                } else if (select < 110) {
-                    ships[id].color_a = LIGHT_MAGENTA;
-                    ships[id].color_b = LIGHT_CYAN;
-                    ships[id].radius = 5;
-                    ships[id].fire_delay = 120;
-                    ships[id].fire_damage = 50;
-                    ships[id].drop_rate = 3;
-                    ships[id].hp = 100;
-                    ships[id].hp_max = 100;
-                    ships[id].score = 1000;
-                    ships[id].ai = ai_seeker;
-                    ships[id].target_ship = randn(nplayers);
-                    ships[id].fx_fire = &fx_fire3;
-                } else if (!ship_exists(LIGHT_GREEN)) {
-                    ships[id].color_a = LIGHT_GREEN;
-                    ships[id].color_b = 43;
-                    ships[id].radius = 8;
-                    ships[id].fire_delay = 20;
-                    ships[id].fire_damage = 90;
-                    ships[id].drop_rate = 4;
-                    ships[id].hp = 1000;
-                    ships[id].hp_max = 1000;
-                    ships[id].score = 10000;
-                    ships[id].ai = ai_seeker;
-                    ships[id].target_ship = randn(nplayers);
-                    ships[id].fx_fire = &fx_fire3;
-                    speaker_play(&speaker, &fx_boss);
-                } else {
-                    ships[id].hp = 0;
-                }
-            }
-        }
-
-        if (ticks < 120) {
+        if (randn(50) == 0)
+            try_spawn();
+        if (ticks < 120)
             print_title(false);
-        } else if (ticks == 120) {
+        else if (ticks == 120)
             print_title(true);
-        }
 
         if (is_game_over()) {
             struct joystick joystick;
