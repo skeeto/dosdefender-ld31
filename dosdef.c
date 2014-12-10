@@ -710,8 +710,8 @@ int dosmain(void)
 
         vga_vsync();
         for (int i = 0; i < particles_max; i++) {
-            particle_draw(i, true);
             if (particles[i].alive) {
+                particle_draw(i, true);
                 particle_step(i);
                 if (particles[i].alive)
                     particle_draw(i, false);
