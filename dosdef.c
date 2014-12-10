@@ -281,7 +281,7 @@ static void powerup_step(int i)
             py >= sy - 4 &&
             px <= sx + 4 &&
             py <= sy + 4) {
-            powerups[i].power(i);
+            powerups[i].power(id);
             powerups[i].alive = false;
             speaker_play(&speaker, &fx_powerup);
         }
