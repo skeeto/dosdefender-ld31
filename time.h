@@ -16,6 +16,17 @@ static uint32_t get_tick()
     return result;
 }
 
+static uint32_t get_time()
+{
+    uint16_t high, low;
+    asm volatile ("mov  $0x2C, %%ah\n"
+                  "int  $0x21\n"
+                  : "=c"(high), "=d"(low)
+                  :
+                  : "ah");
+    return (((uint32_t) high) << 16) | low;
+}
+
 /* Granularity of 976 usec and doesn't work in DOSBox. */
 static void usleep(uint32_t us)
 {
