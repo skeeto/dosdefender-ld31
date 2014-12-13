@@ -444,12 +444,12 @@ int spawn(int hp)
 static void ai_player(int i)
 {
     if (ships[i].hp > 0) {
+        int o = i * 2;
         struct joystick joy;
         struct joystick_config *c = &joystick_config;
-        int xrange = 2 * (c->max[0] - c->min[0]);
-        int yrange = 2 * (c->max[1] - c->min[1]);
+        int xrange = 2 * (c->max[o + 0] - c->min[o + 0]);
+        int yrange = 2 * (c->max[o + 1] - c->min[o + 1]);
         joystick_read(&joy);
-        int o = i * 2;
         ships[i].dx += ((joy.axis[o + 0] - c->center[o + 0]) * 100) / xrange;
         ships[i].dy += ((joy.axis[o + 1] - c->center[o + 1]) * 100) / yrange;
         /* mix input into random state */
