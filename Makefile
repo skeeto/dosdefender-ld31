@@ -1,4 +1,6 @@
-CC      = gcc
+HOST    = x86_64-w64-mingw32
+CC      = $(HOST)-gcc
+OBJCOPY = $(HOST)-objcopy
 DOS     = dosbox
 CFLAGS  = -std=gnu99 -Wall -Wextra -Os -nostdlib -m32 -march=i386 \
   -Wno-unused-function \
@@ -6,7 +8,8 @@ CFLAGS  = -std=gnu99 -Wall -Wextra -Os -nostdlib -m32 -march=i386 \
   -fno-leading-underscore \
   -Wl,--nmagic,-static,-Tcom.ld
 
-dosdef.com : dosdef.c *.h
+dosdef.com : dosdef.exe
+dosdef.exe : dosdef.c *.h
 
 .PHONY : all clean test
 
@@ -16,5 +19,8 @@ clean :
 test : dosdef.com
 	$(DOS) $^
 
-%.com : %.c
+%.exe : %.c
 	$(CC) -o $@ $(CFLAGS) $<
+
+%.com : %.exe
+	$(OBJCOPY) -O binary $< $@
