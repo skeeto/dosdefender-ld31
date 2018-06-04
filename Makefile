@@ -2,8 +2,8 @@ CC      = gcc
 DOS     = dosbox
 CFLAGS  = -std=gnu99 -Wall -Wextra -Os -nostdlib -m32 -march=i386 \
   -Wno-unused-function \
-  -ffreestanding -fomit-frame-pointer -fwrapv -fno-strict-aliasing -fno-stack-protector \
-  -fno-leading-underscore -fno-pic \
+  -ffreestanding -fomit-frame-pointer -fwrapv -fno-strict-aliasing \
+  -fno-leading-underscore -fno-pic -fno-stack-protector \
   -Wl,--nmagic,-static,-Tcom.ld
 
 dosdef.com : dosdef.c *.h
