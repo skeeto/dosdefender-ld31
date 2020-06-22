@@ -11,6 +11,9 @@ it's **intended to be played with a joystick/gamepad**.
 ![](http://i.imgur.com/YQ82yLk.png)
 ![](http://i.imgur.com/IWJvurZ.png)
 
+* [How to build DOS COM files with GCC][blog]
+* [Random DOS Game Show Special: DOS Defender (2014)][video]
+
 ## Playing
 
 Just point DOSBox at the COM binary.
@@ -40,5 +43,7 @@ unit to allow the optimizer full reign in minimizing the code size
 (COM files are limited to 64kB).
 
 
-[ld]: http://ludumdare.com/compo/2014/12/03/welcome-to-ludum-dare-31/
+[blog]: https://nullprogram.com/blog/2014/12/09/
 [db]: http://www.dosbox.com/
+[ld]: http://ludumdare.com/compo/2014/12/03/welcome-to-ludum-dare-31/
+[video]: https://www.youtube.com/watch?v=6UjuFnZYkG4
