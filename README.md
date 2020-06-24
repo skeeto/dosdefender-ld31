@@ -13,6 +13,7 @@ it's **intended to be played with a joystick/gamepad**.
 
 * [How to build DOS COM files with GCC][blog]
 * [Random DOS Game Show Special: DOS Defender (2014)][video]
+* [The New Retro Show plays DOS Defender][retro]
 
 ## Playing
 
@@ -47,3 +48,4 @@ unit to allow the optimizer full reign in minimizing the code size
 [db]: http://www.dosbox.com/
 [ld]: http://ludumdare.com/compo/2014/12/03/welcome-to-ludum-dare-31/
 [video]: https://www.youtube.com/watch?v=6UjuFnZYkG4
+[retro]: https://www.youtube.com/watch?v=eWcKTXAeljo&t=9m36s
