@@ -4,12 +4,12 @@
 static uint32_t get_tick()
 {
     unsigned long result;
-    asm volatile ("push  %%es\n"
+    asm volatile ("pushw %%es\n"
                   "mov   $0,%%bx\n"
                   "mov   %%bx,%%es\n"
                   "mov   $0x046C,%%bx\n"
                   "mov   %%es:(%%bx),%%eax\n"
-                  "pop   %%es\n"
+                  "popw  %%es\n"
                   : "=a"(result)
                   : /* no inputs */
                   : "bx");
