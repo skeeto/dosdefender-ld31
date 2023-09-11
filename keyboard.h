@@ -1,3 +1,6 @@
+#ifndef KEYBOARD_H
+#define KEYBOARD_H
+
 #include "int.h"
 
 static bool kbhit()
@@ -31,3 +34,4 @@ static uint16_t kb_read()
                   : "=a"(key));
     return key;
 }
+#endif
